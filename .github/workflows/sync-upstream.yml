@@ -1,0 +1,50 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    # 每天 UTC 0:00 和 12:00 各同步一次（北京时间 8:00 和 20:00）
+    - cron: "0 0,12 * * *"
+  workflow_dispatch: # 支持手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    name: Sync Fork with Upstream
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Sync Upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 添加上游仓库
+          git remote add upstream https://github.com/craft-ai-agents/craft-agents-oss.git
+
+          # 拉取上游更新
+          git fetch upstream --tags
+
+          # 检查是否有差异
+          LOCAL=$(git rev-parse HEAD)
+          UPSTREAM=$(git rev-parse upstream/main)
+
+          if [ "$LOCAL" = "$UPSTREAM" ]; then
+            echo "✅ Already up to date. No sync needed."
+            exit 0
+          fi
+
+          echo "🔄 Syncing: $LOCAL → $UPSTREAM"
+
+          # 合并上游更新
+          git merge upstream/main --no-edit
+
+          # 推送代码和标签
+          git push
+          git push --tags
+
+          echo "✅ Sync complete!"
