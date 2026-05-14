@@ -61,6 +61,12 @@ export interface AddSourceFormData {
   // API fields
   apiBaseUrl?: string
   apiAuthType?: string
+  // Credentials (saved via credential store after creation)
+  bearerToken?: string
+  basicUsername?: string
+  basicPassword?: string
+  headerName?: string
+  headerValue?: string
 }
 
 type InputMode = 'form' | 'json'
@@ -191,6 +197,13 @@ export function AddSourceDialog({
   const [apiBaseUrl, setApiBaseUrl] = React.useState('')
   const [apiAuthType, setApiAuthType] = React.useState('bearer')
 
+  // Credential inputs (shown conditionally based on auth type)
+  const [bearerToken, setBearerToken] = React.useState('')
+  const [basicUsername, setBasicUsername] = React.useState('')
+  const [basicPassword, setBasicPassword] = React.useState('')
+  const [headerName, setHeaderName] = React.useState('')
+  const [headerValue, setHeaderValue] = React.useState('')
+
   // === JSON mode state ===
   const [jsonText, setJsonText] = React.useState('')
   const [jsonScope, setJsonScope] = React.useState<'global' | 'workspace'>('workspace')
@@ -216,6 +229,11 @@ export function AddSourceDialog({
       setMcpAuthType('none')
       setApiBaseUrl('')
       setApiAuthType('bearer')
+      setBearerToken('')
+      setBasicUsername('')
+      setBasicPassword('')
+      setHeaderName('')
+      setHeaderValue('')
       setJsonText('')
       setJsonScope('workspace')
       setParsedServers([])
@@ -294,6 +312,18 @@ export function AddSourceDialog({
     } else {
       formData.apiBaseUrl = apiBaseUrl.trim()
       formData.apiAuthType = apiAuthType
+    }
+
+    // Attach credential fields based on auth type
+    const effectiveAuthType = sourceType === 'mcp' ? mcpAuthType : apiAuthType
+    if (effectiveAuthType === 'bearer' && bearerToken.trim()) {
+      formData.bearerToken = bearerToken.trim()
+    } else if (effectiveAuthType === 'basic') {
+      formData.basicUsername = basicUsername.trim()
+      formData.basicPassword = basicPassword
+    } else if (effectiveAuthType === 'header') {
+      formData.headerName = headerName.trim()
+      formData.headerValue = headerValue.trim()
     }
 
     try {
@@ -607,6 +637,20 @@ export function AddSourceDialog({
                     <option value="oauth">OAuth</option>
                   </select>
                 </div>
+
+                {/* MCP Credential inputs */}
+                {mcpAuthType === 'bearer' && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">{t('addSource.bearerToken', 'Bearer Token')}</label>
+                    <input type="password" value={bearerToken} onChange={(e) => setBearerToken(e.target.value)} placeholder="sk-..." className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                  </div>
+                )}
+                {mcpAuthType === 'oauth' && (
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-accent/5 text-xs text-foreground/60">
+                    <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-accent" />
+                    <span>{t('addSource.oauthHint', 'After creation, go to source details and click "Authenticate" to start the OAuth flow.')}</span>
+                  </div>
+                )}
               </>
             )}
 
@@ -626,6 +670,38 @@ export function AddSourceDialog({
                     <option value="none">{t('addSource.authNone', 'No Auth')}</option>
                   </select>
                 </div>
+
+                {/* API Credential inputs */}
+                {apiAuthType === 'bearer' && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">{t('addSource.bearerToken', 'API Key / Bearer Token')}</label>
+                    <input type="password" value={bearerToken} onChange={(e) => setBearerToken(e.target.value)} placeholder="sk-..." className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                  </div>
+                )}
+                {apiAuthType === 'basic' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">{t('addSource.username', 'Username')}</label>
+                      <input type="text" value={basicUsername} onChange={(e) => setBasicUsername(e.target.value)} placeholder="user@example.com" className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">{t('addSource.password', 'Password')}</label>
+                      <input type="password" value={basicPassword} onChange={(e) => setBasicPassword(e.target.value)} placeholder="••••••••" className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                    </div>
+                  </>
+                )}
+                {apiAuthType === 'header' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">{t('addSource.headerName', 'Header Name')}</label>
+                      <input type="text" value={headerName} onChange={(e) => setHeaderName(e.target.value)} placeholder="X-API-Key" className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">{t('addSource.headerValue', 'Header Value')}</label>
+                      <input type="password" value={headerValue} onChange={(e) => setHeaderValue(e.target.value)} placeholder="your-api-key" className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                    </div>
+                  </>
+                )}
               </>
             )}
 

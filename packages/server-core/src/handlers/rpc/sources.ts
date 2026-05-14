@@ -82,11 +82,18 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Save credentials for a source (bearer token or API key)
   server.handle(RPC_CHANNELS.sources.SAVE_CREDENTIALS, async (_ctx, workspaceId: string, sourceSlug: string, credential: string) => {
-    const workspace = getWorkspaceByNameOrId(workspaceId)
-    if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
-    const { loadSource, getSourceCredentialManager } = await import('@craft-agent/shared/sources')
+    const { loadSource, loadGlobalSource, getSourceCredentialManager } = await import('@craft-agent/shared/sources')
 
-    const source = loadSource(workspace.rootPath, sourceSlug)
+    // Try global source if workspaceId is '__global__'
+    let source: import('@craft-agent/shared/sources').LoadedSource | null = null
+    if (workspaceId === '__global__') {
+      source = loadGlobalSource(sourceSlug)
+    } else {
+      const workspace = getWorkspaceByNameOrId(workspaceId)
+      if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
+      source = loadSource(workspace.rootPath, sourceSlug)
+    }
+
     if (!source) {
       throw new Error(`Source not found: ${sourceSlug}`)
     }

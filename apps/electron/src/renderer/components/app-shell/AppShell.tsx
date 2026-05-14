@@ -1962,7 +1962,11 @@ function AppShellContent({
     const apiConfig = formData.type === 'api' ? {
       baseUrl: formData.apiBaseUrl,
       authType: formData.apiAuthType || 'bearer',
+      ...(formData.apiAuthType === 'header' && formData.headerName ? { headerNames: [formData.headerName] } : {}),
     } : undefined
+
+    // Determine workspaceId for credential saving
+    const credWorkspaceId = formData.scope === 'global' ? '__global__' : activeWorkspace?.id
 
     try {
       if (formData.scope === 'global') {
@@ -1982,6 +1986,24 @@ function AppShellContent({
           api: apiConfig,
         })
       }
+
+      // Save credentials after successful creation
+      if (credWorkspaceId) {
+        const effectiveAuthType = formData.type === 'mcp' ? formData.mcpAuthType : formData.apiAuthType
+        if (effectiveAuthType === 'bearer' && formData.bearerToken) {
+          await window.electronAPI.saveSourceCredentials(credWorkspaceId, formData.slug, formData.bearerToken)
+        } else if (effectiveAuthType === 'basic' && (formData.basicUsername || formData.basicPassword)) {
+          await window.electronAPI.saveSourceCredentials(credWorkspaceId, formData.slug, JSON.stringify({
+            username: formData.basicUsername || '',
+            password: formData.basicPassword || '',
+          }))
+        } else if (effectiveAuthType === 'header' && formData.headerName && formData.headerValue) {
+          await window.electronAPI.saveSourceCredentials(credWorkspaceId, formData.slug, JSON.stringify({
+            [formData.headerName]: formData.headerValue,
+          }))
+        }
+      }
+
       toast.success(t('addSource.created', 'Source created successfully'))
     } catch (err) {
       toast.error(t('toast.failedToDeleteSource'), { description: err instanceof Error ? err.message : undefined })
