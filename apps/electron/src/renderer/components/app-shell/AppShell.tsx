@@ -567,14 +567,14 @@ function AppShellContent({
   const [releaseNotesContent, setReleaseNotesContent] = React.useState('')
   const [hasUnseenReleaseNotes, setHasUnseenReleaseNotes] = React.useState(false)
 
-  // Check for unseen release notes on mount
-  useEffect(() => {
-    window.electronAPI.getLatestReleaseVersion().then((latestVersion) => {
-      if (!latestVersion) return
-      const lastSeen = storage.get(storage.KEYS.whatsNewLastSeenVersion, '')
-      setHasUnseenReleaseNotes(lastSeen !== latestVersion)
-    })
-  }, [])
+  // Check for unseen release notes on mount — disabled in Cody Agent v0.1
+  // useEffect(() => {
+  //   window.electronAPI.getLatestReleaseVersion().then((latestVersion) => {
+  //     if (!latestVersion) return
+  //     const lastSeen = storage.get(storage.KEYS.whatsNewLastSeenVersion, '')
+  //     setHasUnseenReleaseNotes(lastSeen !== latestVersion)
+  //   })
+  // }, [])
 
   const [isResizing, setIsResizing] = React.useState<'sidebar' | 'session-list' | null>(null)
   const [sidebarHandleY, setSidebarHandleY] = React.useState<number | null>(null)
@@ -2069,10 +2069,11 @@ function AppShellContent({
     result.push({ id: 'nav:skills', type: 'nav', action: handleSkillsClick })
     result.push({ id: 'nav:automations', type: 'nav', action: handleAutomationsClick })
     result.push({ id: 'nav:settings', type: 'nav', action: () => handleSettingsClick() })
-    result.push({ id: 'nav:whats-new', type: 'nav', action: handleWhatsNewClick })
+    // What's New disabled in Cody Agent v0.1
+    // result.push({ id: 'nav:whats-new', type: 'nav', action: handleWhatsNewClick })
 
     return result
-  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelConfigs, labelTree, viewConfigs, handleViewClick, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleSettingsClick, handleWhatsNewClick])
+  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelConfigs, labelTree, viewConfigs, handleViewClick, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleSettingsClick, /* handleWhatsNewClick */])
 
   // Toggle folder expanded state
   const handleToggleFolder = React.useCallback((path: string) => {
@@ -2585,19 +2586,7 @@ function AppShellContent({
                       variant: isSettingsNavigation(navState) ? "default" : "ghost",
                       onClick: () => handleSettingsClick(),
                     },
-                    // --- What's New ---
-                    {
-                      id: "nav:whats-new",
-                      title: t("sidebar.whatsNew"),
-                      icon: hasUnseenReleaseNotes ? (
-                        <span className="relative">
-                          <Cake className="h-3.5 w-3.5" />
-                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent" />
-                        </span>
-                      ) : Cake,
-                      variant: "ghost" as const,
-                      onClick: handleWhatsNewClick,
-                    },
+                    // What's New disabled in Cody Agent v0.1
                   ]}
                 />
                 {/* Agent Tree: Hierarchical list of agents */}

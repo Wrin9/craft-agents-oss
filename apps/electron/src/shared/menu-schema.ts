@@ -320,28 +320,7 @@ export const DEBUG_MENU: MenuSection = {
   labelKey: 'menu.debug',
   icon: 'Bug',
   items: [
-    {
-      type: 'action',
-      id: 'checkForUpdates',
-      actionId: 'app.checkForUpdates',
-      labelKey: 'menu.checkForUpdates',
-      shortcut: '',
-      shortcutDisplayMac: '',
-      shortcutDisplayOther: '',
-      ipcChannel: '',
-      icon: 'Download',
-    },
-    {
-      type: 'action',
-      id: 'installUpdate',
-      actionId: 'app.installUpdate',
-      labelKey: 'menu.installUpdate',
-      shortcut: '',
-      shortcutDisplayMac: '',
-      shortcutDisplayOther: '',
-      ipcChannel: '',
-      icon: 'Download',
-    },
+    // Update checks disabled in Cody Agent v0.1
     { type: 'separator' },
     {
       type: 'action',

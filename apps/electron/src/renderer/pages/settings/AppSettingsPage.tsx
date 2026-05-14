@@ -324,35 +324,7 @@ export default function AppSettingsPage() {
                       )}
                     </div>
                   </SettingsRow>
-                  {isElectron && (
-                    <SettingsRow label={t("settings.about.checkForUpdates")}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCheckForUpdates}
-                        disabled={isCheckingForUpdates}
-                      >
-                        {isCheckingForUpdates ? (
-                          <>
-                            <Spinner className="mr-1.5" />
-                            {t("common.checking")}
-                          </>
-                        ) : (
-                          t("settings.about.checkNow")
-                        )}
-                      </Button>
-                    </SettingsRow>
-                  )}
-                  {isElectron && updateChecker.isReadyToInstall && updateChecker.updateInfo?.latestVersion && (
-                    <SettingsRow label={t("settings.about.updateReady")}>
-                      <Button
-                        size="sm"
-                        onClick={updateChecker.installUpdate}
-                      >
-                        {t("settings.about.restartToUpdate", { version: updateChecker.updateInfo.latestVersion })}
-                      </Button>
-                    </SettingsRow>
-                  )}
+                  {/* Update checks disabled in Cody Agent v0.1 */}
                 </SettingsCard>
               </SettingsSection>
             </div>
