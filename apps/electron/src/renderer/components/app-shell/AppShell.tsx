@@ -1930,50 +1930,62 @@ function AppShellContent({
 
   // Handle manual source creation from AddSourceDialog
   const handleAddSource = useCallback(async (formData: AddSourceFormData) => {
+    // Normalize args: can be string (form mode) or string[] (JSON mode)
+    const normalizeArgs = (args: string | string[] | undefined): string[] | undefined => {
+      if (!args) return undefined
+      if (Array.isArray(args)) return args.length > 0 ? args : undefined
+      const split = args.split(/\s+/).filter(Boolean)
+      return split.length > 0 ? split : undefined
+    }
+    // Normalize env: can be string (form mode) or Record (JSON mode)
+    const normalizeEnv = (env: string | Record<string, string> | undefined): Record<string, string> | undefined => {
+      if (!env) return undefined
+      if (typeof env === 'object') return Object.keys(env).length > 0 ? env : undefined
+      const parsed = Object.fromEntries(env.split('\n').filter(l => l.includes('=')).map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()] }))
+      return Object.keys(parsed).length > 0 ? parsed : undefined
+    }
+
+    const mcpConfig = formData.type === 'mcp' ? {
+      transport: formData.mcpTransport,
+      ...(formData.mcpTransport === 'http' ? {
+        url: formData.mcpUrl,
+        authType: formData.mcpAuthType || 'none',
+        ...(formData.mcpHeaders ? { headers: formData.mcpHeaders } : {}),
+      } : {}),
+      ...(formData.mcpTransport === 'stdio' ? {
+        command: formData.mcpCommand,
+        args: normalizeArgs(formData.mcpArgs),
+        env: normalizeEnv(formData.mcpEnv),
+      } : {}),
+    } : undefined
+
+    const apiConfig = formData.type === 'api' ? {
+      baseUrl: formData.apiBaseUrl,
+      authType: formData.apiAuthType || 'bearer',
+    } : undefined
+
     try {
       if (formData.scope === 'global') {
         await window.electronAPI.createGlobalSource({
           name: formData.name,
           type: formData.type,
           enabled: true,
-          mcp: formData.type === 'mcp' ? {
-            transport: formData.mcpTransport,
-            ...(formData.mcpTransport === 'http' ? { url: formData.mcpUrl, authType: formData.mcpAuthType || 'none' } : {}),
-            ...(formData.mcpTransport === 'stdio' ? {
-              command: formData.mcpCommand,
-              args: formData.mcpArgs ? formData.mcpArgs.split(/\s+/) : [],
-              env: formData.mcpEnv ? Object.fromEntries(formData.mcpEnv.split('\n').filter(l => l.includes('=')).map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()] })) : undefined,
-            } : {}),
-          } : undefined,
-          api: formData.type === 'api' ? {
-            baseUrl: formData.apiBaseUrl,
-            authType: formData.apiAuthType || 'bearer',
-          } : undefined,
+          mcp: mcpConfig,
+          api: apiConfig,
         })
       } else if (activeWorkspace) {
         await window.electronAPI.createSource(activeWorkspace.id, {
           name: formData.name,
           type: formData.type,
           enabled: true,
-          mcp: formData.type === 'mcp' ? {
-            transport: formData.mcpTransport,
-            ...(formData.mcpTransport === 'http' ? { url: formData.mcpUrl, authType: formData.mcpAuthType || 'none' } : {}),
-            ...(formData.mcpTransport === 'stdio' ? {
-              command: formData.mcpCommand,
-              args: formData.mcpArgs ? formData.mcpArgs.split(/\s+/) : [],
-              env: formData.mcpEnv ? Object.fromEntries(formData.mcpEnv.split('\n').filter(l => l.includes('=')).map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()] })) : undefined,
-            } : {}),
-          } : undefined,
-          api: formData.type === 'api' ? {
-            baseUrl: formData.apiBaseUrl,
-            authType: formData.apiAuthType || 'bearer',
-          } : undefined,
+          mcp: mcpConfig,
+          api: apiConfig,
         })
       }
       toast.success(t('addSource.created', 'Source created successfully'))
     } catch (err) {
       toast.error(t('toast.failedToDeleteSource'), { description: err instanceof Error ? err.message : undefined })
-      throw err // re-throw so dialog shows error
+      throw err
     }
   }, [activeWorkspace])
 
