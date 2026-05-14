@@ -1749,6 +1749,7 @@ function AppShellContent({
 
   // Manual Add Source dialog state
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false)
+  const [aiAddPopoverOpen, setAiAddPopoverOpen] = useState(false)
 
   // Stores the Y position of the last right-clicked sidebar item so the EditPopover
   // appears near it rather than at a fixed location. Updated synchronously before
@@ -3224,18 +3225,18 @@ function AppShellContent({
                           data-tutorial="add-source-button"
                         />
                       </DropdownMenuTrigger>
-                      <StyledDropdownMenuContent align="end" className="w-56">
+                      <StyledDropdownMenuContent align="end" className="w-48">
                         <StyledDropdownMenuItem onClick={() => setAddSourceDialogOpen(true)}>
                           <Server className="h-3.5 w-3.5" />
-                          <span className="flex-1">{t('addSource.manualAdd', 'Manual Setup')}</span>
+                          {t('addSource.manualAdd', 'Manual Setup')}
                         </StyledDropdownMenuItem>
                         <StyledDropdownMenuItem asChild>
                           <EditPopover
                             trigger={
-                              <span className="flex items-center gap-2 w-full">
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                <span className="flex-1">{t('addSource.aiAdd', 'AI Setup')}</span>
-                              </span>
+                              <button type="button" className="relative flex cursor-default items-center gap-2 text-sm w-full text-left">
+                                <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                                {t('addSource.aiAdd', 'AI Setup')}
+                              </button>
                             }
                             {...getEditConfig(
                               sourceFilter?.kind === 'type' ? `add-source-${sourceFilter.sourceType}` as EditContextKey : 'add-source',
