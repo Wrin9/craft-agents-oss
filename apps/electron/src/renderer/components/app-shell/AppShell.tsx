@@ -1905,6 +1905,23 @@ function AppShellContent({
     }
   }, [activeWorkspace])
 
+  // Toggle source scope (global ↔ workspace)
+  const handleToggleSourceScope = useCallback(async (sourceSlug: string, newScope: 'global' | 'workspace') => {
+    if (!activeWorkspace) return
+    try {
+      if (newScope === 'global') {
+        await window.electronAPI.moveSourceToGlobal(activeWorkspace.id, sourceSlug)
+        toast.success(t('sources.moveToGlobal'))
+      } else {
+        await window.electronAPI.moveSourceToWorkspace(sourceSlug, activeWorkspace.id)
+        toast.success(t('sources.moveToWorkspace'))
+      }
+    } catch (error) {
+      console.error('[Chat] Failed to toggle source scope:', error)
+      toast.error(t('toast.failedToDeleteSource'))
+    }
+  }, [activeWorkspace])
+
   // Delete Skill
   const handleDeleteSkill = useCallback(async (skillSlug: string) => {
     if (!activeWorkspace) return
@@ -3163,6 +3180,7 @@ function AppShellContent({
                 onSourceClick={handleSourceSelect}
                 selectedSourceSlug={isSourcesNavigation(navState) && navState.details ? navState.details.sourceSlug : null}
                 localMcpEnabled={localMcpEnabled}
+                onToggleScope={handleToggleSourceScope}
               />
             )}
             {isSkillsNavigation(navState) && activeWorkspaceId && (

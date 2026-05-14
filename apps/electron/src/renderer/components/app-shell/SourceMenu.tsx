@@ -21,6 +21,7 @@ import {
   FolderOpen,
   AppWindow,
   Send,
+  Globe,
 } from 'lucide-react'
 import { useMenuComponents } from '@/components/ui/menu-context'
 import { getFileManagerName } from '@/lib/platform'
@@ -30,12 +31,16 @@ export interface SourceMenuProps {
   sourceSlug: string
   /** Source name for display */
   sourceName: string
+  /** Current scope of the source */
+  scope?: 'global' | 'workspace'
   /** Callbacks */
   onOpenInNewWindow: () => void
   onShowInFinder: () => void
   onDelete: () => void
   /** Send to another workspace (omit to hide the option) */
   onSendToWorkspace?: () => void
+  /** Toggle scope between global/workspace */
+  onToggleScope?: (newScope: 'global' | 'workspace') => void
 }
 
 /**
@@ -45,10 +50,12 @@ export interface SourceMenuProps {
 export function SourceMenu({
   sourceSlug,
   sourceName,
+  scope = 'workspace',
   onOpenInNewWindow,
   onShowInFinder,
   onDelete,
   onSendToWorkspace,
+  onToggleScope,
 }: SourceMenuProps) {
   const { t } = useTranslation()
 
@@ -74,6 +81,20 @@ export function SourceMenu({
         <MenuItem onClick={onSendToWorkspace}>
           <Send className="h-3.5 w-3.5" />
           <span className="flex-1">{t("sessionMenu.sendToWorkspace")}</span>
+        </MenuItem>
+      )}
+
+      {/* Toggle Global / Workspace scope */}
+      {onToggleScope && scope === 'workspace' && (
+        <MenuItem onClick={() => onToggleScope('global')}>
+          <Globe className="h-3.5 w-3.5" />
+          <span className="flex-1">{t('sources.moveToGlobal')}</span>
+        </MenuItem>
+      )}
+      {onToggleScope && scope === 'global' && (
+        <MenuItem onClick={() => onToggleScope('workspace')}>
+          <FolderOpen className="h-3.5 w-3.5" />
+          <span className="flex-1">{t('sources.moveToWorkspace')}</span>
         </MenuItem>
       )}
 

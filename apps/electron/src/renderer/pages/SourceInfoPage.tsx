@@ -8,7 +8,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Globe, FolderOpen } from 'lucide-react'
 import { EditPopover, EditButton, getEditConfig } from '@/components/ui/EditPopover'
 import { SourceAvatar } from '@/components/ui/source-avatar'
 import { SourceMenu } from '@/components/app-shell/SourceMenu'
@@ -326,6 +326,24 @@ export default function SourceInfoPage({ sourceSlug, workspaceId, onDelete }: So
     }
   }, [source, sourceUrl])
 
+  // Handle toggling source scope
+  const handleToggleScope = useCallback(async () => {
+    if (!source) return
+    const newScope = source.scope === 'global' ? 'workspace' : 'global'
+    try {
+      if (newScope === 'global') {
+        await window.electronAPI.moveSourceToGlobal(workspaceId, sourceSlug)
+      } else {
+        await window.electronAPI.moveSourceToWorkspace(sourceSlug, workspaceId)
+      }
+      toast.success(newScope === 'global' ? t('sources.moveToGlobal') : t('sources.moveToWorkspace'))
+    } catch (err) {
+      toast.error(t('toast.failedToDeleteSource'), {
+        description: err instanceof Error ? err.message : undefined,
+      })
+    }
+  }, [source, workspaceId, sourceSlug])
+
   // Handle opening source folder
   const handleOpenSourceFolder = useCallback(async () => {
     if (!source) return
@@ -369,9 +387,11 @@ export default function SourceInfoPage({ sourceSlug, workspaceId, onDelete }: So
           <SourceMenu
             sourceSlug={sourceSlug}
             sourceName={sourceName}
+            scope={source?.scope}
             onOpenInNewWindow={handleOpenInNewWindow}
             onShowInFinder={handleOpenSourceFolder}
             onDelete={handleDelete}
+            onToggleScope={(newScope) => handleToggleScope()}
           />
         }
       />
@@ -394,6 +414,46 @@ export default function SourceInfoPage({ sourceSlug, workspaceId, onDelete }: So
               </Info_Alert.Description>
             </Info_Alert>
           )}
+
+          {/* Scope: Global vs Workspace */}
+          <Info_Section
+            title={t('sources.scopeTitle', 'Scope')}
+            description={t('sources.scopeDescription', 'Control whether this source is available in all workspaces or only the current one.')}
+          >
+            <div className="px-4 py-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2.5 min-w-0">
+                {source.scope === 'global' ? (
+                  <Globe className="h-4 w-4 shrink-0 text-accent" />
+                ) : (
+                  <FolderOpen className="h-4 w-4 shrink-0 text-foreground/50" />
+                )}
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">
+                    {source.scope === 'global'
+                      ? t('sources.scope.global')
+                      : t('sources.scope.workspace')
+                    }
+                  </div>
+                  <div className="text-xs text-foreground/50 truncate">
+                    {source.scope === 'global'
+                      ? t('sources.globalDescription')
+                      : t('sources.workspaceDescription')
+                    }
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleScope}
+                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-foreground/5 hover:bg-foreground/10 transition-colors"
+              >
+                {source.scope === 'global' ? (
+                  <><FolderOpen className="h-3 w-3" /> {t('sources.moveToWorkspace')}</>
+                ) : (
+                  <><Globe className="h-3 w-3" /> {t('sources.moveToGlobal')}</>
+                )}
+              </button>
+            </div>
+          </Info_Section>
 
           {/* Connection */}
           <Info_Section

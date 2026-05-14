@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { DatabaseZap } from 'lucide-react'
+import { DatabaseZap, Globe, FolderOpen } from 'lucide-react'
 import { SourceAvatar } from '@/components/ui/source-avatar'
 import { deriveConnectionStatus } from '@/components/ui/source-status-indicator'
 import { EntityPanel } from '@/components/ui/entity-panel'
@@ -11,6 +11,8 @@ import { SourceMenu } from './SourceMenu'
 import { SendResourceToWorkspaceDialog } from './SendResourceToWorkspaceDialog'
 import { useAppShellContext } from '@/context/AppShellContext'
 import { EditPopover, getEditConfig, type EditContextKey } from '@/components/ui/EditPopover'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 import type { LoadedSource, SourceConnectionStatus, SourceFilter } from '../../../shared/types'
 
 const SOURCE_TYPE_CONFIG: Record<string, { labelKey: string; colorClass: string }> = {
@@ -33,6 +35,11 @@ const SOURCE_TYPE_FILTER_LABEL_KEYS: Record<string, string> = {
   local: 'sourcesList.filterLocalFolder',
 }
 
+const SOURCE_SCOPE_CONFIG: Record<string, { labelKey: string; colorClass: string; icon: React.ReactNode }> = {
+  global: { labelKey: 'sources.scope.global', colorClass: 'bg-accent/10 text-accent', icon: <Globe className="h-3 w-3" /> },
+  workspace: { labelKey: 'sources.scope.workspace', colorClass: 'bg-foreground/5 text-foreground/60', icon: <FolderOpen className="h-3 w-3" /> },
+}
+
 export interface SourcesListPanelProps {
   sources: LoadedSource[]
   sourceFilter?: SourceFilter | null
@@ -41,6 +48,8 @@ export interface SourcesListPanelProps {
   onSourceClick: (source: LoadedSource) => void
   selectedSourceSlug?: string | null
   localMcpEnabled?: boolean
+  /** Toggle a source between global and workspace scope */
+  onToggleScope?: (sourceSlug: string, newScope: 'global' | 'workspace') => void
   className?: string
 }
 
@@ -52,6 +61,7 @@ export function SourcesListPanel({
   onSourceClick,
   selectedSourceSlug,
   localMcpEnabled = true,
+  onToggleScope,
   className,
 }: SourcesListPanelProps) {
   const { t } = useTranslation()
@@ -115,11 +125,19 @@ export function SourcesListPanel({
         const typeConfig = SOURCE_TYPE_CONFIG[source.config.type]
         const statusConfig = SOURCE_STATUS_CONFIG[connectionStatus]
         const subtitle = source.config.tagline || source.config.provider || ''
+        const scopeConfig = SOURCE_SCOPE_CONFIG[source.scope || 'workspace']
+        const isGlobal = source.scope === 'global'
         return {
           icon: <SourceAvatar source={source} size="sm" />,
           title: source.config.name,
           badges: (
             <>
+              {scopeConfig && (
+                <EntityListBadge colorClass={scopeConfig.colorClass}>
+                  {scopeConfig.icon}
+                  <span className="ml-0.5">{t(scopeConfig.labelKey)}</span>
+                </EntityListBadge>
+              )}
               {typeConfig && <EntityListBadge colorClass={typeConfig.colorClass}>{t(typeConfig.labelKey)}</EntityListBadge>}
               {statusConfig && (
                 <EntityListBadge colorClass={statusConfig.colorClass} tooltip={source.config.connectionError || undefined} className="cursor-default">
@@ -133,9 +151,11 @@ export function SourcesListPanel({
             <SourceMenu
               sourceSlug={source.config.slug}
               sourceName={source.config.name}
+              scope={source.scope}
               onOpenInNewWindow={() => window.electronAPI.openUrl(`craftagents://sources/source/${source.config.slug}?window=focused`)}
               onShowInFinder={() => window.electronAPI.showInFolder(source.folderPath)}
               onDelete={() => onDeleteSource(source.config.slug)}
+              onToggleScope={onToggleScope ? (newScope) => onToggleScope(source.config.slug, newScope) : undefined}
               onSendToWorkspace={hasOtherWorkspaces ? () => {
                 setSendResourceSlug(source.config.slug)
                 setSendResourceLabel(source.config.name)
