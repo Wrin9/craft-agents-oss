@@ -1416,5 +1416,11 @@
   "workspace.selectWorkspaceDesc": "Choose a workspace on this server, or create a new one.",
   "workspace.selectWorkspacePlaceholder": "Select a workspace...",
   "workspace.serverAuthToken": "Server authentication token",
-  "workspace.underDefaultFolder": "under .cody-agent folder"
+  "workspace.underDefaultFolder": "under .cody-agent folder",
+  "sources.scope.global": "🌐 Global",
+  "sources.scope.workspace": "📁 Workspace",
+  "sources.moveToGlobal": "Move to Global",
+  "sources.moveToWorkspace": "Move to Workspace",
+  "sources.globalDescription": "Available in all workspaces",
+  "sources.workspaceDescription": "Only available in this workspace"
 }

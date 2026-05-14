@@ -1416,5 +1416,11 @@
   "workspace.selectWorkspaceDesc": "选择此服务器上的 Workspace 或创建新的。",
   "workspace.selectWorkspacePlaceholder": "选择 Workspace...",
   "workspace.serverAuthToken": "服务器认证令牌",
-  "workspace.underDefaultFolder": ".cody-agent 文件夹下"
+  "workspace.underDefaultFolder": ".cody-agent 文件夹下",
+  "sources.scope.global": "🌐 全局",
+  "sources.scope.workspace": "📁 工作区",
+  "sources.moveToGlobal": "提升为全局",
+  "sources.moveToWorkspace": "移至工作区",
+  "sources.globalDescription": "在所有工作区中可用",
+  "sources.workspaceDescription": "仅在此工作区中可用"
 }

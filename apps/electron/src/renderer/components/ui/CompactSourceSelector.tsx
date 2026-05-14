@@ -98,8 +98,11 @@ export function CompactSourceSelector({
                       ? <SourceAvatar source={source} size="md" />
                       : <DatabaseZap className="h-5 w-5 text-foreground/60" />}
                   </div>
-                  <div className="flex-1 min-w-0 text-sm font-medium truncate">
-                    {source.config.name}
+                  <div className="flex-1 min-w-0 text-sm font-medium truncate flex items-center gap-1.5">
+                    <span className="truncate">{source.config.name}</span>
+                    {source.scope === 'global' && (
+                      <span className="shrink-0 text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-accent/15 text-accent font-semibold">🌐</span>
+                    )}
                   </div>
                   <div
                     className={cn(

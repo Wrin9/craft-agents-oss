@@ -58,7 +58,12 @@ export function SourceSelectorPopover({
               ? <SourceAvatar source={source} size="sm" />
               : <DatabaseZap className="h-4 w-4" />}
           </div>
-          <div className="flex-1 min-w-0 truncate">{source.config.name}</div>
+          <div className="flex-1 min-w-0 truncate flex items-center gap-1.5">
+            <span className="truncate">{source.config.name}</span>
+            {source.scope === 'global' && (
+              <span className="shrink-0 text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-accent/15 text-accent font-semibold">🌐</span>
+            )}
+          </div>
           <div
             className={cn(
               'shrink-0 h-4 w-4 rounded-full bg-current flex items-center justify-center',

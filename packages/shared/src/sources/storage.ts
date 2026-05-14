@@ -1,16 +1,21 @@
 /**
  * Source Storage
  *
- * CRUD operations for workspace-scoped sources.
- * Sources are stored at {workspaceRootPath}/sources/{sourceSlug}/
+ * CRUD operations for sources at two scopes:
+ * - **Workspace-scoped**: {workspaceRootPath}/sources/{sourceSlug}/
+ * - **Global-scoped**: ~/.cody-agent/sources/{sourceSlug}/
  *
- * Note: All functions take `workspaceRootPath` (absolute path to workspace folder),
+ * Global sources are shared across all workspaces. When both a global and
+ * workspace source share the same slug, the workspace source takes priority.
+ *
+ * Note: All workspace-scoped functions take `workspaceRootPath` (absolute path to workspace folder),
  * NOT a workspace slug. The `LoadedSource.workspaceId` is derived via basename().
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, rmSync } from 'fs';
 import { join, basename } from 'path';
 import { randomUUID } from 'crypto';
+import { CONFIG_DIR } from '../config/paths.ts';
 import type {
   FolderSourceConfig,
   SourceGuide,
@@ -50,6 +55,41 @@ export function ensureSourcesDir(workspaceRootPath: string): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
+}
+
+// ============================================================
+// Global Source Directory Utilities
+// ============================================================
+
+/**
+ * Get path to the global sources directory (~/.cody-agent/sources/)
+ */
+export function getGlobalSourcesPath(): string {
+  return join(CONFIG_DIR, 'sources');
+}
+
+/**
+ * Get path to a specific global source folder
+ */
+export function getGlobalSourcePath(sourceSlug: string): string {
+  return join(getGlobalSourcesPath(), sourceSlug);
+}
+
+/**
+ * Ensure global sources directory exists
+ */
+export function ensureGlobalSourcesDir(): void {
+  const dir = getGlobalSourcesPath();
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
+/**
+ * Check if a source exists in the global scope
+ */
+export function globalSourceExists(sourceSlug: string): boolean {
+  return existsSync(getGlobalSourcePath(sourceSlug));
 }
 
 // ============================================================
@@ -317,6 +357,7 @@ export function loadSource(workspaceRootPath: string, sourceSlug: string): Loade
     folderPath,
     workspaceRootPath,
     workspaceId,
+    scope: 'workspace',
     iconPath,
   };
 }
@@ -409,9 +450,242 @@ export function getSourcesBySlugs(workspaceRootPath: string, slugs: string[]): L
  */
 export function loadAllSources(workspaceRootPath: string): LoadedSource[] {
   const workspaceId = basename(workspaceRootPath);
-  const userSources = loadWorkspaceSources(workspaceRootPath);
+  const globalSources = loadGlobalSources();
+  const workspaceSources = loadWorkspaceSources(workspaceRootPath);
   const builtinSources = getBuiltinSources(workspaceId, workspaceRootPath);
-  return [...userSources, ...builtinSources];
+
+  // Merge: global + workspace + builtin. Workspace sources override global on slug conflict.
+  const workspaceSlugs = new Set(workspaceSources.map(s => s.config.slug));
+  const filteredGlobal = globalSources.filter(s => !workspaceSlugs.has(s.config.slug));
+
+  return [...filteredGlobal, ...workspaceSources, ...builtinSources];
+}
+
+// ============================================================
+// Global Source CRUD
+// ============================================================
+
+/**
+ * Load a single global source by slug.
+ */
+export function loadGlobalSource(sourceSlug: string): LoadedSource | null {
+  const folderPath = getGlobalSourcePath(sourceSlug);
+  const configPath = join(folderPath, 'config.json');
+
+  if (!existsSync(configPath)) return null;
+
+  let config: FolderSourceConfig;
+  try {
+    config = readJsonFileSync(configPath) as FolderSourceConfig;
+  } catch {
+    debug(`[sources] Failed to load global source config: ${sourceSlug}`);
+    return null;
+  }
+
+  const iconPath = findIconFile(folderPath);
+
+  // Load guide if exists
+  let guide: SourceGuide | null = null;
+  const guidePath = join(folderPath, 'guide.md');
+  if (existsSync(guidePath)) {
+    try {
+      guide = { raw: readFileSync(guidePath, 'utf-8') };
+    } catch { /* ignore */ }
+  }
+
+  return {
+    config,
+    guide,
+    folderPath,
+    workspaceRootPath: CONFIG_DIR,
+    workspaceId: '__global__',
+    scope: 'global',
+    iconPath,
+  };
+}
+
+/**
+ * Load all global sources.
+ */
+export function loadGlobalSources(): LoadedSource[] {
+  ensureGlobalSourcesDir();
+
+  const sources: LoadedSource[] = [];
+  const dir = getGlobalSourcesPath();
+
+  if (!existsSync(dir)) return sources;
+
+  const entries = readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const source = loadGlobalSource(entry.name);
+      if (source) {
+        sources.push(source);
+      }
+    }
+  }
+
+  return sources;
+}
+
+/**
+ * Create a new global source.
+ */
+export async function createGlobalSource(input: CreateSourceInput): Promise<LoadedSource> {
+  ensureGlobalSourcesDir();
+
+  let slug = (input.slug || generateGlobalSourceSlug(input.name))
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  // Ensure slug uniqueness against both global and all workspace sources
+  if (globalSourceExists(slug)) {
+    slug = `${slug}-${Date.now()}`;
+  }
+
+  const folderPath = getGlobalSourcePath(slug);
+  mkdirSync(folderPath, { recursive: true });
+
+  const config: FolderSourceConfig = {
+    id: input.id || `global-${randomUUID().slice(0, 8)}`,
+    name: input.name || 'New Source',
+    slug,
+    enabled: input.enabled ?? true,
+    provider: input.provider || '',
+    type: input.type || 'mcp',
+    isAuthenticated: false,
+    createdAt: Date.now(),
+    ...(input.mcp ? { mcp: input.mcp } : {}),
+    ...(input.api ? { api: input.api } : {}),
+    ...(input.tagline ? { tagline: input.tagline } : {}),
+    ...(input.icon ? { icon: input.icon } : {}),
+  };
+
+  writeFileSync(join(folderPath, 'config.json'), JSON.stringify(config, null, 2));
+
+  // Write guide if provided
+  if (input.guideContent) {
+    writeFileSync(join(folderPath, 'guide.md'), input.guideContent);
+  }
+
+  // Download icon if URL
+  if (config.icon && isIconUrl(config.icon)) {
+    try {
+      await downloadIcon(folderPath, config.icon, 'GlobalSources');
+    } catch (e) {
+      debug(`[sources] Failed to download icon for global source ${slug}:`, e);
+    }
+  }
+
+  debug(`[sources] Created global source: ${slug}`);
+  return loadGlobalSource(slug)!;
+}
+
+/**
+ * Delete a global source.
+ */
+export function deleteGlobalSource(sourceSlug: string): void {
+  const folderPath = getGlobalSourcePath(sourceSlug);
+  if (existsSync(folderPath)) {
+    rmSync(folderPath, { recursive: true, force: true });
+    debug(`[sources] Deleted global source: ${sourceSlug}`);
+  }
+}
+
+/**
+ * Generate a unique slug for a global source.
+ */
+export function generateGlobalSourceSlug(name: string): string {
+  let slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 50);
+
+  if (!slug) slug = 'source';
+
+  // Ensure uniqueness in global scope
+  let candidate = slug;
+  let counter = 1;
+  while (globalSourceExists(candidate)) {
+    candidate = `${slug}-${counter++}`;
+  }
+  return candidate;
+}
+
+/**
+ * Move a workspace source to global scope.
+ * The workspace source is deleted and recreated at global scope.
+ */
+export function moveSourceToGlobal(workspaceRootPath: string, sourceSlug: string): LoadedSource | null {
+  const source = loadSource(workspaceRootPath, sourceSlug);
+  if (!source) return null;
+
+  // Create at global scope with same config
+  ensureGlobalSourcesDir();
+  const globalPath = getGlobalSourcePath(sourceSlug);
+  mkdirSync(globalPath, { recursive: true });
+
+  // Copy config
+  writeFileSync(join(globalPath, 'config.json'), JSON.stringify(source.config, null, 2));
+
+  // Copy guide if exists
+  if (source.guide?.raw) {
+    writeFileSync(join(globalPath, 'guide.md'), source.guide.raw);
+  }
+
+  // Copy icon files
+  const iconFiles = ['icon.svg', 'icon.png', 'icon.jpg', 'icon.webp'];
+  for (const iconFile of iconFiles) {
+    const srcIcon = join(source.folderPath, iconFile);
+    if (existsSync(srcIcon)) {
+      const content = readFileSync(srcIcon);
+      writeFileSync(join(globalPath, iconFile), content);
+    }
+  }
+
+  // Delete from workspace
+  deleteSource(workspaceRootPath, sourceSlug);
+
+  debug(`[sources] Moved source ${sourceSlug} from workspace to global`);
+  return loadGlobalSource(sourceSlug);
+}
+
+/**
+ * Move a global source to a specific workspace.
+ */
+export function moveSourceToWorkspace(sourceSlug: string, workspaceRootPath: string): LoadedSource | null {
+  const source = loadGlobalSource(sourceSlug);
+  if (!source) return null;
+
+  // Create at workspace scope
+  const wsPath = getSourcePath(workspaceRootPath, sourceSlug);
+  mkdirSync(wsPath, { recursive: true });
+
+  // Copy config
+  writeFileSync(join(wsPath, 'config.json'), JSON.stringify(source.config, null, 2));
+
+  // Copy guide if exists
+  if (source.guide?.raw) {
+    writeFileSync(join(wsPath, 'guide.md'), source.guide.raw);
+  }
+
+  // Copy icon files
+  const iconFiles = ['icon.svg', 'icon.png', 'icon.jpg', 'icon.webp'];
+  for (const iconFile of iconFiles) {
+    const srcIcon = join(source.folderPath, iconFile);
+    if (existsSync(srcIcon)) {
+      const content = readFileSync(srcIcon);
+      writeFileSync(join(wsPath, iconFile), content);
+    }
+  }
+
+  // Delete from global
+  deleteGlobalSource(sourceSlug);
+
+  debug(`[sources] Moved source ${sourceSlug} from global to workspace`);
+  return loadSource(workspaceRootPath, sourceSlug);
 }
 
 // ============================================================

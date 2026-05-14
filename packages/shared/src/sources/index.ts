@@ -37,6 +37,11 @@ export {
   // Directory utilities
   ensureSourcesDir,
   getSourcePath,
+  // Global source utilities
+  getGlobalSourcesPath,
+  getGlobalSourcePath,
+  ensureGlobalSourcesDir,
+  globalSourceExists,
   // Config operations
   loadSourceConfig,
   saveSourceConfig,
@@ -56,6 +61,14 @@ export {
   getEnabledSources,
   isSourceUsable,
   getSourcesBySlugs,
+  // Global source load/create/delete
+  loadGlobalSource,
+  loadGlobalSources,
+  createGlobalSource,
+  deleteGlobalSource,
+  generateGlobalSourceSlug,
+  moveSourceToGlobal,
+  moveSourceToWorkspace,
   // Create/Delete operations
   generateSourceSlug,
   createSource,

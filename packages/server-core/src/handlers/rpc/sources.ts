@@ -16,6 +16,12 @@ export const HANDLED_CHANNELS = [
   RPC_CHANNELS.workspace.GET_PERMISSIONS,
   RPC_CHANNELS.permissions.GET_DEFAULTS,
   RPC_CHANNELS.sources.GET_MCP_TOOLS,
+  // Global source operations
+  RPC_CHANNELS.sources.GET_GLOBAL,
+  RPC_CHANNELS.sources.CREATE_GLOBAL,
+  RPC_CHANNELS.sources.DELETE_GLOBAL,
+  RPC_CHANNELS.sources.MOVE_TO_GLOBAL,
+  RPC_CHANNELS.sources.MOVE_TO_WORKSPACE,
 ] as const
 
 export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): void {
@@ -239,5 +245,60 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
       }
       return { success: false, error: errorMessage }
     }
+  })
+
+  // =============================================
+  // Global Source Operations
+  // =============================================
+
+  // Get all global sources
+  server.handle(RPC_CHANNELS.sources.GET_GLOBAL, async () => {
+    const { loadGlobalSources } = await import('@craft-agent/shared/sources')
+    return loadGlobalSources()
+  })
+
+  // Create a global source
+  server.handle(RPC_CHANNELS.sources.CREATE_GLOBAL, async (_ctx, config: Partial<import('@craft-agent/shared/sources').CreateSourceInput>) => {
+    const { createGlobalSource } = await import('@craft-agent/shared/sources')
+    return createGlobalSource({
+      name: config.name || 'New Source',
+      provider: config.provider || 'custom',
+      type: config.type || 'mcp',
+      enabled: config.enabled ?? true,
+      mcp: config.mcp,
+      api: config.api,
+      local: config.local,
+      tagline: config.tagline,
+      icon: config.icon,
+    })
+  })
+
+  // Delete a global source
+  server.handle(RPC_CHANNELS.sources.DELETE_GLOBAL, async (_ctx, sourceSlug: string) => {
+    const { deleteGlobalSource } = await import('@craft-agent/shared/sources')
+    deleteGlobalSource(sourceSlug)
+    log.info(`Deleted global source: ${sourceSlug}`)
+  })
+
+  // Move a workspace source to global scope
+  server.handle(RPC_CHANNELS.sources.MOVE_TO_GLOBAL, async (_ctx, workspaceId: string, sourceSlug: string) => {
+    const workspace = getWorkspaceByNameOrId(workspaceId)
+    if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
+    const { moveSourceToGlobal } = await import('@craft-agent/shared/sources')
+    const result = moveSourceToGlobal(workspace.rootPath, sourceSlug)
+    if (!result) throw new Error(`Failed to move source ${sourceSlug} to global`)
+    log.info(`Moved source ${sourceSlug} from workspace to global`)
+    return result
+  })
+
+  // Move a global source to workspace scope
+  server.handle(RPC_CHANNELS.sources.MOVE_TO_WORKSPACE, async (_ctx, sourceSlug: string, workspaceId: string) => {
+    const workspace = getWorkspaceByNameOrId(workspaceId)
+    if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
+    const { moveSourceToWorkspace } = await import('@craft-agent/shared/sources')
+    const result = moveSourceToWorkspace(sourceSlug, workspace.rootPath)
+    if (!result) throw new Error(`Failed to move source ${sourceSlug} to workspace`)
+    log.info(`Moved global source ${sourceSlug} to workspace ${workspaceId}`)
+    return result
   })
 }

@@ -511,6 +511,7 @@ export interface LoadedSource {
   /**
    * Workspace this source belongs to.
    * Used for credential lookups: source_oauth::{workspaceId}::{sourceSlug}
+   * For global sources, this is '__global__'.
    */
   workspaceId: string;
 
@@ -519,6 +520,13 @@ export interface LoadedSource {
    * Built-in sources are always available and not shown in the sources UI.
    */
   isBuiltin?: boolean;
+
+  /**
+   * Source scope: 'global' (shared across all workspaces) or 'workspace' (specific to one workspace).
+   * Global sources are stored at ~/.cody-agent/sources/{slug}/.
+   * Workspace sources are stored at ~/.cody-agent/workspaces/{id}/sources/{slug}/.
+   */
+  scope?: 'global' | 'workspace';
 
   /**
    * Pre-computed path to local icon file (icon.svg, icon.png, etc.) if it exists.

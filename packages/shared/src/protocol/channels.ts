@@ -242,6 +242,12 @@ export const RPC_CHANNELS = {
     CHANGED: 'sources:changed',
     GET_PERMISSIONS: 'sources:getPermissions',
     GET_MCP_TOOLS: 'sources:getMcpTools',
+    // Global source operations
+    GET_GLOBAL: 'sources:getGlobal',
+    CREATE_GLOBAL: 'sources:createGlobal',
+    DELETE_GLOBAL: 'sources:deleteGlobal',
+    MOVE_TO_GLOBAL: 'sources:moveToGlobal',
+    MOVE_TO_WORKSPACE: 'sources:moveToWorkspace',
   },
   oauth: {
     START: 'oauth:start',

@@ -459,6 +459,13 @@ export interface ElectronAPI {
   getDefaultPermissionsConfig(): Promise<{ config: import('@craft-agent/shared/agent').PermissionsConfigFile | null; path: string }>
   getMcpTools(workspaceId: string, sourceSlug: string): Promise<McpToolsResult>
 
+  // Global source operations
+  getGlobalSources(): Promise<LoadedSource[]>
+  createGlobalSource(config: Partial<FolderSourceConfig>): Promise<FolderSourceConfig>
+  deleteGlobalSource(sourceSlug: string): Promise<void>
+  moveSourceToGlobal(workspaceId: string, sourceSlug: string): Promise<LoadedSource>
+  moveSourceToWorkspace(sourceSlug: string, workspaceId: string): Promise<LoadedSource>
+
   // OAuth (server-owned credentials, client-orchestrated flow)
   performOAuth(args: { sourceSlug: string; sessionId?: string; authRequestId?: string }): Promise<{ success: boolean; error?: string; email?: string }>
   oauthRevoke(sourceSlug: string): Promise<{ success: boolean }>

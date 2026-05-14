@@ -1511,10 +1511,12 @@ export class SessionManager implements ISessionManager {
     managed.agent.setAllSources(allSources)
 
     // Rebuild MCP and API servers for session's enabled sources
-    const enabledSlugs = managed.enabledSourceSlugs || []
-    const enabledSources = allSources.filter(s =>
-      enabledSlugs.includes(s.config.slug) && isSourceUsable(s)
-    )
+    // Global sources are always enabled regardless of enabledSourceSlugs
+    const enabledSlugs = new Set(managed.enabledSourceSlugs || [])
+    const enabledSources = allSources.filter(s => {
+      if (s.scope === 'global') return isSourceUsable(s)  // Global: always on
+      return enabledSlugs.has(s.config.slug) && isSourceUsable(s)  // Workspace: per-session toggle
+    })
     // Pass session path so large API responses can be saved to session folder
     const sessionPath = getSessionStoragePath(workspaceRootPath, managed.id)
     const { mcpServers, apiServers } = await buildServersFromSources(enabledSources, sessionPath, managed.tokenRefreshManager, managed.agent?.getSummarizeCallback())
@@ -1901,11 +1903,12 @@ export class SessionManager implements ISessionManager {
     if (result.success && result.sourceSlug && managed.agent) {
       const workspaceRootPath = managed.workspace.rootPath
       const sessionPath = getSessionStoragePath(workspaceRootPath, managed.id)
-      const enabledSlugs = managed.enabledSourceSlugs || []
+      const enabledSlugs = new Set(managed.enabledSourceSlugs || [])
       const allSources = loadAllSources(workspaceRootPath)
-      const enabledSources = allSources.filter(s =>
-        enabledSlugs.includes(s.config.slug) && isSourceUsable(s)
-      )
+      const enabledSources = allSources.filter(s => {
+        if (s.scope === 'global') return isSourceUsable(s)
+        return enabledSlugs.has(s.config.slug) && isSourceUsable(s)
+      })
       const { mcpServers } = await buildServersFromSources(
         enabledSources, sessionPath, managed.tokenRefreshManager
       )
@@ -2941,11 +2944,12 @@ export class SessionManager implements ISessionManager {
       // ============================================================
 
       const sessionPath = getSessionStoragePath(managed.workspace.rootPath, managed.id)
-      const enabledSlugs = managed.enabledSourceSlugs || []
+      const enabledSlugs = new Set(managed.enabledSourceSlugs || [])
       const allSources = loadAllSources(managed.workspace.rootPath)
-      const enabledSources = allSources.filter(s =>
-        enabledSlugs.includes(s.config.slug) && isSourceUsable(s)
-      )
+      const enabledSources = allSources.filter(s => {
+        if (s.scope === 'global') return isSourceUsable(s)
+        return enabledSlugs.has(s.config.slug) && isSourceUsable(s)
+      })
 
       // Build server configs for enabled sources
       const { mcpServers, apiServers } = await buildServersFromSources(enabledSources, sessionPath, managed.tokenRefreshManager)
