@@ -1,0 +1,20 @@
+{
+  "name": "@cody-agent/core",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Cody Agent — unified cognitive agent with four-layer memory, continuous learning, proactive thinking, and self-evolution",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cody-agent/memory": "workspace:*",
+    "@cody-agent/evolve": "workspace:*",
+    "@cody-agent/proactive": "workspace:*",
+    "@cody-agent/evolution": "workspace:*",
+    "@craft-agent/core": "workspace:*"
+  },
+  "devDependencies": {}
+}

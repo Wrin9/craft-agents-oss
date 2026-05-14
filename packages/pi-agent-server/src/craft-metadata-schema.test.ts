@@ -2,8 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import { createEditToolDefinition } from '@mariozechner/pi-coding-agent';
 import { allowCraftMetadataProperties, stripCraftMetadata } from './craft-metadata-schema.ts';
 
-describe('Craft metadata schema compatibility for Pi tools', () => {
-  it('widens a strict Edit-like schema with optional Craft metadata properties', () => {
+describe('Cody metadata schema compatibility for Pi tools', () => {
+  it('widens a strict Edit-like schema with optional Cody metadata properties', () => {
     const schema = {
       type: 'object',
       additionalProperties: false,
@@ -82,7 +82,7 @@ describe('Craft metadata schema compatibility for Pi tools', () => {
     expect(allowCraftMetadataProperties(noProperties)).toBe(noProperties);
   });
 
-  it('strips Craft metadata before upstream Pi tool execution', () => {
+  it('strips Cody metadata before upstream Pi tool execution', () => {
     const input = {
       _displayName: 'Edit Lines',
       _intent: 'Add punctuation',

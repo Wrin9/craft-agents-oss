@@ -573,4 +573,92 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
     if (!targetWorkspaceId || typeof targetWorkspaceId !== 'string') throw new Error('targetWorkspaceId is required')
     return sessionManager.importRemoteSessionTransfer(targetWorkspaceId, payload)
   })
+
+  // ============================================================
+  // Cody Agent Memory System RPC Handlers
+  // ============================================================
+
+  // Get comprehensive memory status for a session
+  server.handle(RPC_CHANNELS.sessions.CODY_MEMORY_STATUS, async (_ctx, sessionId: string) => {
+    const managed = sessionManager.getManagedSession(sessionId)
+    if (!managed) throw new Error(`Session ${sessionId} not found`)
+
+    const { getCodyMemoryService } = await import('../../cody/memory-service.ts')
+    const codyService = getCodyMemoryService()
+    const agent = codyService.getActiveAgent(managed.workspace.id)
+
+    if (!agent) {
+      return { available: false }
+    }
+
+    try {
+      const [stats, evo, suggestions, performance] = await Promise.all([
+        agent.getMemoryStats(),
+        Promise.resolve(agent.getEvolutionSummary()),
+        Promise.resolve(agent.getProactiveSuggestions()),
+        Promise.resolve(agent.getPerformance()),
+      ])
+
+      return {
+        available: true,
+        stats,
+        evolution: evo,
+        suggestions,
+        performance,
+      }
+    } catch (err) {
+      log.error('Cody memory status failed:', err)
+      return { available: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  // Execute a memory action (accept/dismiss suggestion, approve/reject modification)
+  server.handle(RPC_CHANNELS.sessions.CODY_MEMORY_ACTION, async (_ctx, sessionId: string, action: string, id?: string) => {
+    const managed = sessionManager.getManagedSession(sessionId)
+    if (!managed) throw new Error(`Session ${sessionId} not found`)
+
+    const { getCodyMemoryService } = await import('../../cody/memory-service.ts')
+    const agent = getCodyMemoryService().getActiveAgent(managed.workspace.id)
+    if (!agent) throw new Error('Memory system not available')
+
+    switch (action) {
+      case 'accept_suggestion':
+        return { ok: agent.acceptSuggestion(id!) }
+      case 'dismiss_suggestion':
+        return { ok: agent.dismissSuggestion(id!) }
+      case 'approve_modification':
+        return { ok: agent.approveModification(id!) }
+      case 'reject_modification':
+        return { ok: agent.rejectModification(id!) }
+      case 'trigger_consolidation': {
+        const report = await agent.memory.runConsolidation()
+        return { ok: true, report }
+      }
+      case 'trigger_reflection': {
+        const episodes = await agent.memory.getEpisodesForReflection(10)
+        const result = await agent.evolve.reflect('immediate', episodes)
+        return { ok: true, result }
+      }
+      default:
+        throw new Error(`Unknown memory action: ${action}`)
+    }
+  })
+
+  // Get evolution timeline entries
+  server.handle(RPC_CHANNELS.sessions.CODY_MEMORY_TIMELINE, async (_ctx, sessionId: string, limit?: number, offset?: number) => {
+    const managed = sessionManager.getManagedSession(sessionId)
+    if (!managed) throw new Error(`Session ${sessionId} not found`)
+
+    const { getCodyMemoryService } = await import('../../cody/memory-service.ts')
+    const agent = getCodyMemoryService().getActiveAgent(managed.workspace.id)
+    if (!agent) throw new Error('Memory system not available')
+
+    const logEntries = agent.evolution.getEvolutionLog(limit ?? 50)
+    const modifications = agent.evolution.getPendingModifications()
+
+    return {
+      entries: logEntries,
+      pendingModifications: modifications,
+    }
+  })
 }

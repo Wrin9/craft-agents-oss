@@ -41,7 +41,7 @@ import type { CredentialId, StoredCredential } from '../types.ts';
 import { credentialIdToAccount, accountToCredentialId } from '../types.ts';
 
 // File location
-const CREDENTIALS_DIR = join(homedir(), '.craft-agent');
+const CREDENTIALS_DIR = process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent');
 const CREDENTIALS_FILE = join(CREDENTIALS_DIR, 'credentials.enc');
 
 // File format constants

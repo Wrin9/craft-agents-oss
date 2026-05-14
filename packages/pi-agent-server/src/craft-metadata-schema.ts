@@ -3,12 +3,12 @@ const CRAFT_INTENT_KEY = '_intent';
 
 const CRAFT_DISPLAY_NAME_SCHEMA = {
   type: 'string',
-  description: 'Craft UI metadata: human-friendly action name for display only.',
+  description: 'Cody UI metadata: human-friendly action name for display only.',
 };
 
 const CRAFT_INTENT_SCHEMA = {
   type: 'string',
-  description: 'Craft UI metadata: concise tool-call intent for display only.',
+  description: 'Cody UI metadata: concise tool-call intent for display only.',
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -22,9 +22,9 @@ function cloneWithDescriptors<T extends object>(value: T): T {
 }
 
 /**
- * Return a Pi tool schema that accepts Craft's root-level metadata fields.
+ * Return a Pi tool schema that accepts Cody's root-level metadata fields.
  *
- * Pi validates tool arguments before Craft's pre-tool-use hook can strip
+ * Pi validates tool arguments before Cody's pre-tool-use hook can strip
  * `_displayName` / `_intent`. Built-in Pi tools often use strict schemas with
  * `additionalProperties: false`, so we add those fields as optional root
  * properties at the adapter boundary. Unknown schema shapes are returned
@@ -55,7 +55,7 @@ export function allowCraftMetadataProperties<T>(schema: T): T {
   return nextSchema as T;
 }
 
-/** Strip Craft-only metadata before invoking the upstream Pi tool implementation. */
+/** Strip Cody-only metadata before invoking the upstream Pi tool implementation. */
 export function stripCraftMetadata<T>(input: T): T {
   if (!isRecord(input)) return input;
   if (!(CRAFT_DISPLAY_NAME_KEY in input) && !(CRAFT_INTENT_KEY in input)) return input;

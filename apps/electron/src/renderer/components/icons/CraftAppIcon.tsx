@@ -1,4 +1,4 @@
-import craftLogo from "@/assets/craft_logo_c.svg"
+import codyLogo from "@/assets/cody_logo.svg"
 
 interface CraftAppIconProps {
   className?: string
@@ -6,13 +6,13 @@ interface CraftAppIconProps {
 }
 
 /**
- * CraftAppIcon - Displays the Craft logo (colorful "C" icon)
+ * CraftAppIcon - Displays the Cody Agent logo
  */
 export function CraftAppIcon({ className, size = 64 }: CraftAppIconProps) {
   return (
     <img
-      src={craftLogo}
-      alt="Craft"
+      src={codyLogo}
+      alt="Cody Agent"
       width={size}
       height={size}
       className={className}

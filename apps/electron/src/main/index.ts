@@ -182,9 +182,9 @@ registerPiModelResolver((piAuthProvider) =>
   piAuthProvider ? getPiModelsForAuthProvider(piAuthProvider) : getAllPiModels()
 )
 
-// Custom URL scheme for deeplinks (e.g., craftagents://auth-complete)
-// Supports multi-instance dev: CRAFT_DEEPLINK_SCHEME env var (craftagents1, craftagents2, etc.)
-const DEEPLINK_SCHEME = process.env.CRAFT_DEEPLINK_SCHEME || 'craftagents'
+// Custom URL scheme for deeplinks (e.g., codyagent://auth-complete)
+// Supports multi-instance dev: CODY_DEEPLINK_SCHEME env var (codyagent1, codyagent2, etc.)
+const DEEPLINK_SCHEME = process.env.CODY_DEEPLINK_SCHEME || process.env.CRAFT_DEEPLINK_SCHEME || 'codyagent'
 
 let windowManager: WindowManager | null = null
 let sessionManager: SessionManager | null = null
@@ -204,8 +204,8 @@ let messagingHandle: MessagingBootstrapHandle | null = null
 let pendingDeepLink: string | null = null
 
 // Set app name early (before app.whenReady) to ensure correct macOS menu bar title
-// Supports multi-instance dev: CRAFT_APP_NAME env var (e.g., "Craft Agents [1]")
-app.setName(process.env.CRAFT_APP_NAME || 'Craft Agents')
+// Supports multi-instance dev: CODY_APP_NAME env var (e.g., "Cody Agent [1]")
+app.setName(process.env.CODY_APP_NAME || process.env.CRAFT_APP_NAME || 'Cody Agent')
 
 // Register as default protocol client for craftagents:// URLs
 // This must be done before app.whenReady() on some platforms
@@ -643,7 +643,7 @@ app.whenReady().then(async () => {
             sessionManager: sm,
             credentialManager: getCredentialManager(),
             getMessagingDir: (wsId: string) =>
-              join(homedir(), '.craft-agent', 'workspaces', wsId, 'messaging'),
+              join(process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent'), 'workspaces', wsId, 'messaging'),
             getLegacyMessagingDir: (wsId: string) => {
               const ws = getWorkspaces().find((w) => w.id === wsId)
               return ws ? join(ws.rootPath, 'messaging') : undefined
@@ -943,7 +943,7 @@ app.whenReady().then(async () => {
 
         // Only compare port/tls/token when at least one side has server mode enabled.
         // When both are disabled, the running port is random — comparing it to the
-        // saved default (9100) would always produce a false "restart required" banner.
+        // saved default (9200) would always produce a false "restart required" banner.
         const needsRestart = saved.enabled !== runningServerState.enabled
           || ((saved.enabled || runningServerState.enabled) && (
             saved.port !== runningServerState.port

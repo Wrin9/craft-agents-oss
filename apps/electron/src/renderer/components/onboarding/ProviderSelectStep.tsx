@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
-import { Key, Monitor } from "lucide-react"
-import { CraftAgentsSymbol } from "@/components/icons/CraftAgentsSymbol"
+import { Key, Monitor, Sparkles, Brain, Zap } from "lucide-react"
 import { StepFormLayout } from "./primitives"
+import { CraftAgentsSymbol } from "@/components/icons/CraftAgentsSymbol"
 
 import claudeIcon from "@/assets/provider-icons/claude.svg"
 import openaiIcon from "@/assets/provider-icons/openai.svg"
@@ -39,8 +39,7 @@ interface ProviderSelectStepProps {
 /**
  * ProviderSelectStep — First screen after install.
  *
- * Welcomes the user and asks them to pick their subscription / auth method.
- * Selecting a card immediately advances to the next step.
+ * Cody Agent branded onboarding with cognitive features highlight.
  */
 export function ProviderSelectStep({ onSelect, onSkip }: ProviderSelectStepProps) {
   const { t } = useTranslation()
@@ -67,57 +66,101 @@ export function ProviderSelectStep({ onSelect, onSkip }: ProviderSelectStepProps
     {
       id: 'api_key',
       name: t("onboarding.providerSelect.otherProvider"),
-      description: 'Anthropic, AWS Bedrock, OpenRouter, Google or any compatible provider.',
+      description: 'Anthropic, AWS Bedrock, OpenRouter, Google or any compatible provider — powered by Cody Agent.',
       icon: PROVIDER_ICONS.api_key,
     },
     {
       id: 'local',
       name: t("onboarding.providerSelect.localModel"),
-      description: 'Run models locally with Ollama.',
+      description: 'Run local models with Ollama — full offline cognitive capabilities.',
       icon: PROVIDER_ICONS.local,
     },
   ]
 
   return (
-    <StepFormLayout
-      iconElement={
-        <div className="flex size-16 items-center justify-center">
-          <CraftAgentsSymbol className="size-10 text-accent" />
+    <div className="flex w-full max-w-[36rem] flex-col items-center">
+      {/* Hero section */}
+      <div className="mb-8 flex flex-col items-center text-center">
+        {/* Logo */}
+        <div className="relative mb-5">
+          <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 via-blue-500/10 to-cyan-500/10 p-1 shadow-lg ring-1 ring-foreground/5">
+            <CraftAgentsSymbol className="size-14" />
+          </div>
+          {/* Animated glow ring */}
+          <div className="absolute inset-0 -z-10 animate-pulse rounded-2xl bg-gradient-to-br from-violet-500/20 via-blue-500/20 to-cyan-500/20 blur-xl" />
         </div>
-      }
-      title={t("onboarding.providerSelect.title")}
-      description={t("onboarding.providerSelect.description")}
-    >
-      <div className="space-y-2 sm:space-y-3">
-        {PROVIDER_OPTIONS.map((option) => (
+
+        {/* Title */}
+        <h1 className="text-2xl font-bold tracking-tight">
+          {t("onboarding.providerSelect.title")}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-xs">
+          {t("onboarding.providerSelect.description")}
+        </p>
+
+        {/* Feature pills */}
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/10 px-3 py-1 text-[11px] font-medium text-violet-600 dark:text-violet-400">
+            <Brain className="size-3" />
+            Cognitive Memory
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+            <Sparkles className="size-3" />
+            Self-Evolution
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1 text-[11px] font-medium text-cyan-600 dark:text-cyan-400">
+            <Zap className="size-3" />
+            Proactive Thinking
+          </span>
+        </div>
+      </div>
+
+      {/* Provider cards */}
+      <div className="w-full space-y-2">
+        {PROVIDER_OPTIONS.map((option, index) => (
           <button
             key={option.id}
             onClick={() => onSelect(option.id)}
             className={cn(
-              "flex w-full items-center gap-3 rounded-xl bg-foreground-2 p-3 text-left transition-all",
+              "group flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all",
               "sm:items-start sm:gap-4 sm:p-4",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "hover:bg-foreground/[0.02] shadow-minimal",
+              "hover:bg-foreground/[0.03]",
+              // Subtle gradient border effect
+              "border border-transparent hover:border-foreground/[0.06]",
+              "hover:shadow-sm",
             )}
           >
             {/* Icon */}
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-muted-foreground transition-colors group-hover:bg-muted group-hover:text-foreground">
               {option.icon}
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
               <span className="font-medium text-sm">{option.name}</span>
-              <p className="mt-0 hidden sm:block text-xs text-muted-foreground">
+              <p className="mt-0.5 hidden sm:block text-xs text-muted-foreground leading-relaxed">
                 {option.description}
               </p>
             </div>
+
+            {/* Chevron */}
+            <svg
+              className="size-4 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
           </button>
         ))}
       </div>
 
+      {/* Skip */}
       {onSkip && (
-        <div className="mt-4 text-center">
+        <div className="mt-6 text-center">
           <button
             onClick={onSkip}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -126,6 +169,6 @@ export function ProviderSelectStep({ onSelect, onSkip }: ProviderSelectStepProps
           </button>
         </div>
       )}
-    </StepFormLayout>
+    </div>
   )
 }

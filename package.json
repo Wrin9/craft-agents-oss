@@ -1,8 +1,8 @@
 {
-  "name": "craft-agent",
-  "version": "0.9.3",
+  "name": "cody-agent",
+  "version": "0.1.0",
   "license": "Apache-2.0",
-  "description": "Claude Code-like agent for Craft documents",
+  "description": "Cody Agent — AI Assistant with Cognitive Memory Architecture",
   "type": "module",
   "private": true,
   "trustedDependencies": [

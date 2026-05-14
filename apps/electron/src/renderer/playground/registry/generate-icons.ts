@@ -10,10 +10,11 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const TOOL_ICONS_DIR = path.join(process.env.HOME!, '.craft-agent/tool-icons')
+const CONFIG_DIR = process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || path.join(process.env.HOME!, '.cody-agent')
+const TOOL_ICONS_DIR = path.join(CONFIG_DIR, 'tool-icons')
 const SOURCES_DIR = path.join(
-  process.env.HOME!,
-  '.craft-agent/workspaces/046a02d0-6521-98eb-8756-95ec4bb8c41f/sources'
+  CONFIG_DIR,
+  'workspaces/046a02d0-6521-98eb-8756-95ec4bb8c41f/sources'
 )
 const OUTPUT_FILE = path.join(__dirname, 'sample-icons.ts')
 

@@ -587,7 +587,7 @@ async function ensureSession(): Promise<AgentSession> {
     mkdirSync(agentDir, { recursive: true });
     sessionOptions.agentDir = agentDir;
 
-    // Session resume: use a per-Craft-session directory so the Pi SDK can
+    // Session resume: use a per-Cody-session directory so the Pi SDK can
     // persist and resume its own session across subprocess restarts.
     // continueRecent() loads the existing session if one exists, otherwise
     // creates a new one — so this handles both first-run and resume.
@@ -752,7 +752,7 @@ function wrapSingleTool(tool: ToolDefinition<any, any>): ToolDefinition<any, any
     // Send to main process for permission checking + transforms
     inputObj = await requestPreToolUseApproval(sdkToolName, inputObj, toolCallId);
 
-    // Metadata is for Craft UI only. Keep a final defensive strip here so the
+    // Metadata is for Cody UI only. Keep a final defensive strip here so the
     // upstream Pi tool implementation always receives clean executable args,
     // even if a future pre-tool-use path returns `allow` without modification.
     inputObj = stripCraftMetadata(inputObj);
@@ -1281,7 +1281,7 @@ async function handlePrompt(msg: Extract<InboundMessage, { type: 'prompt' }>): P
 
     const session = await ensureSession();
 
-    // Force the Craft-built system prompt onto the Pi session. Direct assignment
+    // Force the Cody-built system prompt onto the Pi session. Direct assignment
     // to `state.systemPrompt` is wiped on every `session.prompt()` call by the Pi
     // SDK (see system-prompt-override.ts).
     if (msg.systemPrompt) {
@@ -1311,7 +1311,7 @@ async function handlePrompt(msg: Extract<InboundMessage, { type: 'prompt' }>): P
     // calls agent.continue() to retry once. Running our own session.compact()
     // in parallel raced against the SDK and is the documented cause of the
     // AbortController crash in `_runAutoCompaction` (see
-    // plans/fix-pi-gpt-compaction.md). PiEventAdapter holds the Craft event
+    // plans/fix-pi-gpt-compaction.md). PiEventAdapter holds the Cody event
     // queue open across the SDK's recovery flow so the recovered turn
     // reaches the UI.
 

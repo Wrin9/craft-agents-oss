@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * @craft-agent/server — standalone headless Craft Agent server.
+ * @craft-agent/server — standalone headless Cody Agent server.
  *
  * Usage:
  *   CRAFT_SERVER_TOKEN=<secret> bun run packages/server/src/index.ts
@@ -8,7 +8,7 @@
  * Environment:
  *   CRAFT_SERVER_TOKEN         — required bearer token for client auth
  *   CRAFT_RPC_HOST             — bind address (default: 127.0.0.1)
- *   CRAFT_RPC_PORT             — bind port (default: 9100)
+ *   CRAFT_RPC_PORT             — bind port (default: 9200)
  *   CRAFT_RPC_TLS_CERT         — path to PEM certificate file (enables TLS/wss)
  *   CRAFT_RPC_TLS_KEY          — path to PEM private key file (required with cert)
  *   CRAFT_RPC_TLS_CA           — path to PEM CA chain file (optional)
@@ -132,7 +132,7 @@ let webuiNodeHandler: ReturnType<typeof nodeHttpAdapter> | undefined
 let healthCheckFn: (() => { status: string }) | null = null
 
 if (webuiEnabled && serverToken) {
-  const rpcPort = parseInt(process.env.CRAFT_RPC_PORT ?? '9100', 10)
+  const rpcPort = parseInt(process.env.CRAFT_RPC_PORT ?? '9200', 10)
   const rpcProtocol = tls ? 'wss' as const : 'ws' as const
 
   webuiHandler = createWebuiHandler({
@@ -210,7 +210,7 @@ const instance = await (async () => {
           sessionManager,
           credentialManager: getCredentialManager(),
           getMessagingDir: (wsId: string) =>
-            join(homedir(), '.craft-agent', 'workspaces', wsId, 'messaging'),
+            join(process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent'), 'workspaces', wsId, 'messaging'),
           // Headless has no legacy messaging dir — workspaces start clean.
           whatsapp: {
             workerEntry: waWorkerEntry,

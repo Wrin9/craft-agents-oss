@@ -49,9 +49,9 @@ export interface SessionViewerProps {
 }
 
 /**
- * CraftAgentLogo - The Craft Agent "C" logo for branding
+ * CraftAgentLogo - The Cody Agent "C" logo for branding
  */
-function CraftAgentLogo({ className }: { className?: string }) {
+function CodyAgentLogo({ className }: { className?: string }) {
   return (
     <svg
       className={className}

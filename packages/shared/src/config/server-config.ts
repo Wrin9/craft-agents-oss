@@ -9,7 +9,7 @@
 export interface ServerConfig {
   /** Whether remote server mode is active (bind 0.0.0.0 vs 127.0.0.1) */
   enabled: boolean
-  /** Fixed port to listen on (default 9100) */
+  /** Fixed port to listen on (default 9200) */
   port: number
   /** Path to PEM certificate file (enables TLS / wss://) */
   tlsCertPath?: string
@@ -40,5 +40,5 @@ export interface ServerStatus {
 
 export const DEFAULT_SERVER_CONFIG: ServerConfig = {
   enabled: false,
-  port: 9100,
+  port: 9200,
 }

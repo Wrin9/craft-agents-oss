@@ -47,6 +47,10 @@ export const RPC_CHANNELS = {
     IMPORT: 'sessions:import',
     EXPORT_REMOTE_TRANSFER: 'sessions:exportRemoteTransfer',
     IMPORT_REMOTE_TRANSFER: 'sessions:importRemoteTransfer',
+    // Cody Agent memory system
+    CODY_MEMORY_STATUS: 'sessions:codyMemoryStatus',
+    CODY_MEMORY_ACTION: 'sessions:codyMemoryAction',
+    CODY_MEMORY_TIMELINE: 'sessions:codyMemoryTimeline',
   },
   transfer: {
     START: 'transfer:start',

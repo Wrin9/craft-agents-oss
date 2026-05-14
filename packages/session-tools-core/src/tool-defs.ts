@@ -40,6 +40,13 @@ import { handleGetSessionInfo } from './handlers/get-session-info.ts';
 import { handleListSessions } from './handlers/list-sessions.ts';
 import { handleSendAgentMessage } from './handlers/send-agent-message.ts';
 import { handleListMessagingChannels, handleUnbindMessagingChannel } from './handlers/messaging.ts';
+import {
+  handleMemoryRecall,
+  handleMemoryStore,
+  handleMemorySearch,
+  handleMemoryStatus,
+  handleMemoryAction,
+} from './handlers/memory-tools.ts';
 
 // ============================================================
 // Canonical Zod Schemas
@@ -125,7 +132,7 @@ export const UpdatePreferencesSchema = z.object({
   country: z.string().optional().describe("The user's country"),
   language: z.string().optional().describe("The user's preferred language for responses"),
   notes: z.string().optional().describe('Additional notes about the user that would be helpful to remember (preferences, context, etc.). Replaces any existing notes.'),
-  includeCoAuthoredBy: z.boolean().optional().describe("Whether to include 'Co-Authored-By: Craft Agent' trailer on git commits. Defaults to true."),
+  includeCoAuthoredBy: z.boolean().optional().describe("Whether to include 'Co-Authored-By: Cody Agent' trailer on git commits. Defaults to true."),
 });
 
 export const TransformDataSchema = z.object({
@@ -222,6 +229,48 @@ export const UnbindMessagingChannelSchema = z.object({
 });
 
 // ============================================================
+// Cody Agent Memory Tools
+// ============================================================
+
+export const MemoryRecallSchema = z.object({
+  query: z.string().describe('Query to recall relevant memories'),
+  limit: z.number().optional().describe('Max results (default 5)'),
+});
+
+export const MemoryStoreSchema = z.object({
+  type: z.enum(['fact', 'preference', 'knowledge']).describe('Type of memory to store'),
+  subject: z.string().describe('Subject or key'),
+  content: z.string().describe('Content to store'),
+  confidence: z.number().optional().describe('Confidence level 0-1 (for knowledge)'),
+  tags: z.array(z.string()).optional().describe('Tags for categorization'),
+});
+
+export const MemorySearchSchema = z.object({
+  query: z.string().describe('Search query'),
+  layers: z.array(z.enum(['episodic', 'semantic', 'procedural'])).optional()
+    .describe('Memory layers to search (default: all)'),
+  limit: z.number().optional().describe('Max results per layer (default 5)'),
+});
+
+export const MemoryStatusSchema = z.object({
+  includeEvolution: z.boolean().optional().describe('Include evolution summary'),
+  includeSuggestions: z.boolean().optional().describe('Include proactive suggestions'),
+  includePerformance: z.boolean().optional().describe('Include performance snapshot'),
+});
+
+export const MemoryActionSchema = z.object({
+  action: z.enum([
+    'accept_suggestion',
+    'dismiss_suggestion',
+    'approve_modification',
+    'reject_modification',
+    'trigger_consolidation',
+    'trigger_reflection',
+  ]).describe('Action to perform'),
+  id: z.string().optional().describe('ID of the suggestion/modification'),
+});
+
+// ============================================================
 // Canonical Tool Descriptions (base — no DOC_REFS)
 // ============================================================
 
@@ -237,7 +286,7 @@ The plan will be displayed to the user in a special formatted view.
 - The conversation will resume when the user responds (accept, modify, or reject the plan)
 - Do NOT include any text or tool calls after SubmitPlan - they will not be executed`,
 
-  config_validate: `Validate Craft Agent configuration files.
+  config_validate: `Validate Cody Agent configuration files.
 
 Use this after editing configuration files to check for errors before they take effect.
 Returns structured validation results with errors, warnings, and suggestions.
@@ -447,7 +496,7 @@ Optional overrides: \`model\`, \`llmConnection\`, \`permissionMode\`, \`thinking
 The spawned session appears in the session list and runs fire-and-forget.
 Only use 'attachments' for existing file paths on disk — the tool reads them automatically.`,
 
-  send_developer_feedback: `Send freeform feedback to the Craft Agent development team.
+  send_developer_feedback: `Send freeform feedback to the Cody Agent development team.
 
 Use this to share anything that would help improve the product — issues you hit, ideas for better tools, suggestions for improved workflows, or patterns you notice. Write in markdown with as much detail as possible. This is your direct line to the developers.`,
 
@@ -483,6 +532,58 @@ Shows which external chat apps are connected and can send/receive messages.`,
 
   unbind_messaging_channel: `Disconnect a messaging channel from the current session.
 Messages will no longer be forwarded between the chat app and this session.`,
+
+  memory_recall: `Recall relevant memories from the cognitive memory system.
+
+Searches episodic, semantic, and procedural memory layers for information relevant to the query.
+Returns a formatted context block with matching memories.
+
+Use this when you need to:
+- Remember past interactions with the user
+- Recall learned knowledge or facts
+- Find relevant learned skills
+- Get context about previous tasks`,
+
+  memory_store: `Store information in the cognitive memory system for future recall.
+
+Stores a fact, preference, or knowledge entry that will be available in future sessions.
+
+**Types:**
+- \`fact\`: A knowledge fact (e.g., "project:auth", "Uses JWT tokens with RS256")
+- \`preference\`: A user preference (e.g., "language", "Chinese")
+- \`knowledge\`: General knowledge to remember
+
+Use this when:
+- The user shares important preferences
+- You discover information worth remembering
+- The user asks you to remember something`,
+
+  memory_search: `Deep search across all memory layers of the cognitive system.
+
+Searches episodic (experiences), semantic (knowledge), and procedural (skills) memory.
+Returns structured results organized by layer.
+
+Optionally filter which layers to search and limit results per layer.`,
+
+  memory_status: `Get a comprehensive status report of the cognitive memory system.
+
+Returns:
+- Memory statistics (episodes, facts, skills, vector entries)
+- Evolution summary (performance trend, score, strategies)
+- Proactive suggestions (pending recommendations)
+- Performance snapshot (success rate, satisfaction, utilization)
+
+Use this to understand the current state of the cognitive system and review pending suggestions or modifications.`,
+
+  memory_action: `Perform actions on the cognitive memory system.
+
+**Actions:**
+- \`accept_suggestion\`: Accept a proactive suggestion
+- \`dismiss_suggestion\`: Dismiss a proactive suggestion
+- \`approve_modification\`: Approve a pending self-modification
+- \`reject_modification\`: Reject a pending self-modification
+- \`trigger_consolidation\`: Manually trigger memory consolidation
+- \`trigger_reflection\`: Manually trigger experience reflection`,
 } as const;
 
 // ============================================================
@@ -558,6 +659,12 @@ export const SESSION_TOOL_DEFS: SessionToolDef[] = [
   // Messaging gateway tools
   { name: 'list_messaging_channels', description: TOOL_DESCRIPTIONS.list_messaging_channels, inputSchema: ListMessagingChannelsSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleListMessagingChannels },
   { name: 'unbind_messaging_channel', description: TOOL_DESCRIPTIONS.unbind_messaging_channel, inputSchema: UnbindMessagingChannelSchema, executionMode: 'registry', safeMode: 'block', handler: handleUnbindMessagingChannel },
+  // Cody Agent memory tools
+  { name: 'memory_recall', description: TOOL_DESCRIPTIONS.memory_recall, inputSchema: MemoryRecallSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleMemoryRecall },
+  { name: 'memory_store', description: TOOL_DESCRIPTIONS.memory_store, inputSchema: MemoryStoreSchema, executionMode: 'registry', safeMode: 'block', handler: handleMemoryStore },
+  { name: 'memory_search', description: TOOL_DESCRIPTIONS.memory_search, inputSchema: MemorySearchSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleMemorySearch },
+  { name: 'memory_status', description: TOOL_DESCRIPTIONS.memory_status, inputSchema: MemoryStatusSchema, executionMode: 'registry', safeMode: 'allow', readOnly: true, handler: handleMemoryStatus },
+  { name: 'memory_action', description: TOOL_DESCRIPTIONS.memory_action, inputSchema: MemoryActionSchema, executionMode: 'registry', safeMode: 'block', handler: handleMemoryAction },
 ];
 
 export interface SessionToolFilterOptions {

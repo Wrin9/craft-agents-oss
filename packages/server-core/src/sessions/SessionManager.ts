@@ -21,6 +21,7 @@ import {
 import { getLlmConnection, getLlmConnections, getDefaultLlmConnection, getDefaultThinkingLevel, resetManagedAnthropicAuthEnvVars, resolveMidStreamBehavior } from '@craft-agent/shared/config'
 import { PrivilegedExecutionBroker } from '@craft-agent/server-core/services'
 import { isValidWorkingDirectory } from '../utils/path-validation'
+import { getCodyMemoryService } from '../cody/memory-service.ts'
 import { InitGate } from '@craft-agent/server-core/domain'
 import { i18n, LOCALE_REGISTRY, type LanguageCode } from '@craft-agent/shared/i18n'
 import {
@@ -870,6 +871,8 @@ interface ManagedSession {
   // Whether the previous turn was interrupted (for context injection on next message).
   // Ephemeral — not persisted to disk. Cleared after one-shot injection.
   wasInterrupted?: boolean
+  // Cody Agent: turn start timestamp for experience recording
+  codyTurnStartTime?: number
 }
 
 /**
@@ -2086,6 +2089,15 @@ export class SessionManager implements ISessionManager {
     return sessions
       .map(m => managedToSession(m))
       .sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0))
+  }
+
+  /**
+   * Get the raw ManagedSession for a session ID.
+   * Used by RPC handlers that need direct access to the managed session
+   * (e.g., Cody memory system).
+   */
+  getManagedSession(sessionId: string): ManagedSession | undefined {
+    return this.sessions.get(sessionId)
   }
 
   /**
@@ -3572,7 +3584,7 @@ export class SessionManager implements ISessionManager {
       }
 
       // Note: Credential requests now flow through onAuthRequest (unified auth flow)
-      // The legacy onCredentialRequest callback has been removed from CraftAgent
+      // The legacy onCredentialRequest callback has been removed from CodyAgent
       // Auth refresh for mid-session token expiry is handled by the error handler in sendMessage
       // which destroys/recreates the agent to get fresh credentials
 
@@ -5507,6 +5519,23 @@ export class SessionManager implements ISessionManager {
         managed.wasInterrupted = false
       }
 
+      // Cody Agent: inject memory-enriched context
+      const codyMemoryService = getCodyMemoryService()
+      if (codyMemoryService.enabled) {
+        try {
+          const codyAgent = await codyMemoryService.getAgent(managed.workspace.id, workspaceRootPath)
+          if (codyAgent) {
+            const memoryContext = await codyAgent.getMemoryContext(effectiveMessage)
+            if (memoryContext) {
+              effectiveMessage = `${effectiveMessage}\n\n${memoryContext}`
+            }
+            managed.codyTurnStartTime = Date.now()
+          }
+        } catch (codyErr) {
+          sessionLog.warn(`Cody memory context injection failed for session ${sessionId}:`, codyErr)
+        }
+      }
+
       const messageBackendContext = resolveBackendContext({
         sessionConnectionSlug: managed.llmConnection,
         workspaceDefaultConnectionSlug: loadWorkspaceConfig(workspaceRootPath)?.defaults?.defaultLlmConnection,
@@ -5946,6 +5975,29 @@ export class SessionManager implements ISessionManager {
     if (reason === 'complete' && managed.systemPromptPreset === 'mini' && managed.sessionStatus !== 'done') {
       sessionLog.info(`Auto-completing mini agent session ${sessionId}`)
       await this.setSessionStatus(sessionId, 'done')
+    }
+
+    // 3b. Cody Agent: record experience on turn completion
+    if (reason === 'complete' && managed.codyTurnStartTime && managed.lastSentMessage) {
+      const codyMemorySvc = getCodyMemoryService()
+      if (codyMemorySvc.enabled) {
+        const codyAgent = codyMemorySvc.getActiveAgent(managed.workspace.id)
+        if (codyAgent) {
+          const turnDuration = Date.now() - managed.codyTurnStartTime
+          // Fire-and-forget experience recording (don't block turn completion)
+          codyAgent.recordExperience({
+            sessionId: managed.id,
+            task: managed.lastSentMessage.slice(0, 200),
+            approach: 'Agent completed task',
+            outcome: didReceiveNewFinalMessage ? 'success' : 'partial',
+            durationMs: turnDuration,
+            tags: [managed.permissionMode ?? 'ask'],
+          }).catch((err: unknown) => {
+            sessionLog.warn(`Cody experience recording failed for session ${sessionId}:`, err)
+          })
+        }
+      }
+      managed.codyTurnStartTime = undefined
     }
 
     // 4. Apply deferred external metadata updates captured while processing.
@@ -6684,7 +6736,7 @@ export class SessionManager implements ISessionManager {
       }
 
       case 'tool_result': {
-        // toolName comes directly from CraftAgent (resolved via ToolIndex)
+        // toolName comes directly from CodyAgent (resolved via ToolIndex)
         const toolName = event.toolName || 'unknown'
 
         // Format absolute paths to relative paths for better readability
@@ -6707,7 +6759,7 @@ export class SessionManager implements ISessionManager {
 
         sessionLog.info(`RESULT MATCH: toolUseId=${event.toolUseId}, found=${!!existingToolMsg}, toolName=${existingToolMsg?.toolName || toolName}, wasComplete=${wasAlreadyComplete}`)
 
-        // parentToolUseId comes from CraftAgent (SDK-authoritative) or existing message
+        // parentToolUseId comes from CodyAgent (SDK-authoritative) or existing message
         const parentToolUseId = existingToolMsg?.parentToolUseId || event.parentToolUseId
 
         if (existingToolMsg) {
@@ -7015,7 +7067,7 @@ export class SessionManager implements ISessionManager {
         break
 
       case 'complete':
-        // Complete event from CraftAgent - accumulate usage from this turn
+        // Complete event from CodyAgent - accumulate usage from this turn
         // Actual 'complete' sent to renderer comes from the finally block in sendMessage
         if (event.usage) {
           // Initialize tokenUsage if not set

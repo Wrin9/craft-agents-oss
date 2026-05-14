@@ -387,6 +387,73 @@ export interface SessionToolContext {
    * Used by transform_data and render_template for output files.
    */
   dataPath?: string;
+
+  // ============================================================
+  // Cody Agent Memory System
+  // ============================================================
+
+  /**
+   * Cody Agent memory system instance.
+   * Injected by backends with memory enabled (Claude in-process, Pi subprocess).
+   * Provides access to the four-layer memory, proactive suggestions, and evolution.
+   *
+   * When available, the memory tools (memory_recall, memory_store, etc.) use this
+   * to access the cognitive architecture. When not available, memory tools return
+   * a helpful error message.
+   */
+  codyMemory?: {
+    getMemoryContext(query: string): Promise<string>;
+    setUserPreference(key: string, value: string): Promise<void>;
+    storeKnowledge(subject: string, content: string, confidence?: number): Promise<void>;
+    getMemoryStats(): Promise<{
+      workingMemorySize: number;
+      workingMemoryTokens: number;
+      episodicCount: number;
+      semanticCount: number;
+      proceduralCount: number;
+      vectorCount: number;
+    }>;
+    getProactiveSuggestions(): Array<{
+      id: string;
+      title: string;
+      description: string;
+      type: string;
+      confidence: number;
+      status: string;
+    }>;
+    acceptSuggestion(id: string): boolean;
+    dismissSuggestion(id: string): boolean;
+    approveModification(id: string): boolean;
+    rejectModification(id: string): boolean;
+    getEvolutionSummary(): {
+      performanceTrend: string;
+      currentScore: number;
+      totalEvolutions: number;
+      pendingModifications: number;
+      activeStrategies: number;
+      totalStrategies: number;
+      bestStrategy: string | null;
+    };
+    getPerformance(): {
+      taskSuccessRate: number;
+      userSatisfaction: number;
+      skillUtilization: number;
+      evolutionScore: number;
+    } | null;
+    memory: {
+      getEpisodesForReflection(limit: number): Promise<Array<{ task: string; outcome: string; approach: string }>>;
+      semantic: {
+        search(query: string, limit: number): Promise<Array<{ subject: string; content: string; confidence: number }>>;
+      };
+      procedural: {
+        search(query: string, limit: number): Promise<Array<{ name: string; metrics: { successRate: number; useCount: number } }>>;
+      };
+      runConsolidation(): Promise<{ reinforced: number; decayed: number; merged: number; promoted: number }>;
+    };
+    evolve: {
+      reflect(mode: string, episodes: Array<unknown>): Promise<{ performanceScore: number; insights: string[] }>;
+    };
+  };
 }
 
 // ============================================================

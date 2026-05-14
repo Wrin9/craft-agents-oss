@@ -1,0 +1,18 @@
+{
+  "name": "@cody-agent/evolve",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "LTK-Evolve continuous learning engine for Cody Agent — experience exploration, reflection, skill learning, knowledge internalization",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "@cody-agent/memory": "workspace:*",
+    "@craft-agent/core": "workspace:*"
+  },
+  "devDependencies": {}
+}

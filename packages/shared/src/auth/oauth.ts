@@ -26,7 +26,7 @@ export interface OAuthCallbacks {
 const CALLBACK_PORT_START = 8914;
 const CALLBACK_PORT_END = 8924;
 const CALLBACK_PATH = '/oauth/callback';
-const CLIENT_NAME = 'Claude Code (Craft Agent)';
+const CLIENT_NAME = 'Claude Code (Cody Agent)';
 
 // Generate PKCE code verifier and challenge
 function generatePKCE(): { verifier: string; challenge: string } {
@@ -40,7 +40,7 @@ function generateState(): string {
   return randomBytes(16).toString('hex');
 }
 
-export class CraftOAuth {
+export class CodyOAuth {
   private config: OAuthConfig;
   private server: Server | null = null;
   private callbacks: OAuthCallbacks;
@@ -446,7 +446,7 @@ export class CraftOAuth {
 
 /**
  * Register an MCP OAuth client dynamically.
- * Extracted from CraftOAuth.registerClient for reuse in prepareMcpOAuth.
+ * Extracted from CodyOAuth.registerClient for reuse in prepareMcpOAuth.
  */
 class McpClientRegistrationError extends Error {
   status?: number;
@@ -960,7 +960,7 @@ export async function discoverOAuthMetadata(
 
   onLog?.(`Discovering OAuth metadata for ${mcpUrl}`);
 
-  // 1. Try RFC 9728 protected resource discovery first (handles Craft MCP and other compliant servers)
+  // 1. Try RFC 9728 protected resource discovery first (handles Cody MCP and other compliant servers)
   const rfc9728Metadata = await discoverViaProtectedResource(mcpUrl, onLog);
   if (rfc9728Metadata) {
     return rfc9728Metadata;

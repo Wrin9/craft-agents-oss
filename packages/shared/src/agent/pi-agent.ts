@@ -42,7 +42,7 @@ import type { Workspace } from '../config/storage.ts';
 import { PiEventAdapter } from './backend/pi/event-adapter.ts';
 import { EventQueue } from './backend/event-queue.ts';
 
-// System prompt for Craft Agent context
+// System prompt for Cody Agent context
 import { getSystemPrompt } from '../prompts/system.ts';
 import { getCoAuthorPreference } from '../config/preferences.ts';
 
@@ -119,7 +119,7 @@ export const PI_BACKEND_SESSION_TOOL_NAMES = new Set<string>([
  * planning heuristics, config watching, usage tracking).
  */
 export class PiAgent extends BaseAgent {
-  protected backendName = 'Craft Agents Backend';
+  protected backendName = 'Cody Agent Backend';
 
   // ============================================================
   // Subprocess State
@@ -552,9 +552,9 @@ export class PiAgent extends BaseAgent {
    * Returns a provider-aware credential object for the subprocess,
    * or null if no piAuthProvider is configured (falls back to legacy getApiKey).
    *
-   * OAuth tokens from Craft (Claude Max, ChatGPT Plus, Copilot) are passed as
+   * OAuth tokens from Cody (Claude Max, ChatGPT Plus, Copilot) are passed as
    * api_key type because they function as bearer tokens that the Pi SDK's provider
-   * modules use directly. The OAuth exchange happens on the Craft side; by the time
+   * modules use directly. The OAuth exchange happens on the Cody side; by the time
    * it reaches Pi, it's just an access token.
    */
   private async getPiAuth(): Promise<{
@@ -1022,7 +1022,7 @@ export class PiAgent extends BaseAgent {
    */
   private handleSubprocessEvent(event: Record<string, unknown>): void {
     // The subprocess sends Pi SDK AgentSessionEvent objects serialized as JSON.
-    // Feed them through PiEventAdapter to convert to Craft AgentEvents.
+    // Feed them through PiEventAdapter to convert to Cody AgentEvents.
 
     // Detect session MCP tool completions (same pattern as in-process version)
     const eventType = event.type as string;
@@ -1940,7 +1940,7 @@ export class PiAgent extends BaseAgent {
         this.config.workspace.rootPath,
         this.config.session?.workingDirectory,
         this.config.systemPromptPreset,
-        'Craft Agents Backend', // backendName
+        'Cody Agent Backend', // backendName
         getCoAuthorPreference() // respect user's includeCoAuthoredBy preference (#576)
       );
 

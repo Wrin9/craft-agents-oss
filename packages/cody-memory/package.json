@@ -1,0 +1,31 @@
+{
+  "name": "@cody-agent/memory",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Brain-inspired 7-layer cognitive memory system for Cody Agent — SQLite + vec0 + FTS5 + FSRS + Hebbian + Ebbinghaus + Transformers.js",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./working": "./src/working/index.ts",
+    "./episodic": "./src/episodic/index.ts",
+    "./semantic": "./src/semantic/index.ts",
+    "./procedural": "./src/procedural/index.ts",
+    "./vector": "./src/vector/index.ts",
+    "./algorithms": "./src/algorithms/index.ts",
+    "./embedding": "./src/embedding/index.ts",
+    "./db": "./src/db/index.ts"
+  },
+  "dependencies": {
+    "@craft-agent/core": "workspace:*",
+    "@huggingface/transformers": "^4.2.0",
+    "better-sqlite3": "^12.10.0",
+    "sqlite-vec": "^0.1.9"
+  },
+  "peerDependencies": {},
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
+  }
+}

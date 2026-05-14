@@ -43,6 +43,8 @@ export interface ISessionManager {
 
   getSessions(workspaceId?: string): Session[]
   getSession(sessionId: string): Promise<Session | null>
+  /** Get the raw ManagedSession for direct access (e.g., Cody memory system) */
+  getManagedSession(sessionId: string): { workspace: { id: string; rootPath: string } } | undefined
   createSession(workspaceId: string, options?: CreateSessionOptions): Promise<Session>
   deleteSession(sessionId: string): Promise<void>
 
