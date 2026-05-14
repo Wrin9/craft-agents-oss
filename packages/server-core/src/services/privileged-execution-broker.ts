@@ -22,7 +22,7 @@ interface PendingPrivilegedRequest extends PrivilegedExecutionRequest {
 }
 
 const DEFAULT_APPROVAL_TTL_SECONDS = 120
-const AUDIT_LOG_PATH = join(process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent'), 'logs', 'privileged-actions.jsonl')
+const AUDIT_LOG_PATH = join(process.env.CODY_CONFIG_DIR || process.env.CODY_CONFIG_DIR || join(homedir(), '.cody-agent'), 'logs', 'privileged-actions.jsonl')
 
 /**
  * PrivilegedExecutionBroker

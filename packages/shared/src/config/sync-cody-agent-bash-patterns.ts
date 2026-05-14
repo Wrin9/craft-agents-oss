@@ -16,10 +16,10 @@ interface PermissionsConfig {
 }
 
 function isCraftAgentPattern(entry: AllowedBashEntry): boolean {
-  return typeof entry.pattern === 'string' && entry.pattern.startsWith('^craft-agent\\s')
+  return typeof entry.pattern === 'string' && entry.pattern.startsWith('^cody-agent\\s')
 }
 
-function syncCraftAgentPatterns(config: PermissionsConfig): PermissionsConfig {
+function syncCodyAgentPatterns(config: PermissionsConfig): PermissionsConfig {
   const patterns = config.allowedBashPatterns ?? []
   const firstCraftIndex = patterns.findIndex(isCraftAgentPattern)
 
@@ -45,10 +45,10 @@ function main() {
     : resolve(process.cwd(), 'apps/electron/resources/permissions/default.json')
 
   const config = JSON.parse(readFileSync(targetPath, 'utf-8')) as PermissionsConfig
-  const nextConfig = syncCraftAgentPatterns(config)
+  const nextConfig = syncCodyAgentPatterns(config)
 
   writeFileSync(targetPath, `${JSON.stringify(nextConfig, null, 2)}\n`, 'utf-8')
-  process.stdout.write(`Synced craft-agent bash patterns in ${targetPath}\n`)
+  process.stdout.write(`Synced cody-agent bash patterns in ${targetPath}\n`)
 }
 
 if (import.meta.main) {

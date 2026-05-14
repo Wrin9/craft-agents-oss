@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const CONFIG_DIR = process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || path.join(process.env.HOME!, '.cody-agent')
+const CONFIG_DIR = process.env.CODY_CONFIG_DIR || process.env.CODY_CONFIG_DIR || path.join(process.env.HOME!, '.cody-agent')
 const TOOL_ICONS_DIR = path.join(CONFIG_DIR, 'tool-icons')
 const SOURCES_DIR = path.join(
   CONFIG_DIR,
@@ -114,7 +114,7 @@ function generateIconsFile() {
  * DO NOT EDIT MANUALLY
  */
 
-// Native tool icons (from ~/.craft-agent/tool-icons/)
+// Native tool icons (from ~/.cody-agent/tool-icons/)
 export const nativeToolIcons = {
 ${Object.entries(nativeIcons)
   .map(([name, data]) => `  ${name}: '${data}',`)

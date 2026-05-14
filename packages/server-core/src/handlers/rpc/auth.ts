@@ -59,7 +59,7 @@ export function registerAuthHandlers(server: RpcServer, deps: HandlerDeps): void
       }
 
       // Delete the config file
-      const configPath = join(process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent'), 'config.json')
+      const configPath = join(process.env.CODY_CONFIG_DIR || process.env.CODY_CONFIG_DIR || join(homedir(), '.cody-agent'), 'config.json')
       await unlink(configPath).catch(() => {
         // Ignore if file doesn't exist
       })

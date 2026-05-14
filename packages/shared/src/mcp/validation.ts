@@ -1,13 +1,13 @@
 /**
  * MCP Connection Validation
  *
- * Validates HTTP/SSE MCP servers by connecting directly via CraftMcpClient
+ * Validates HTTP/SSE MCP servers by connecting directly via CodyMcpClient
  * and listing tools. Avoids spawning a Claude Code subprocess (which is killed
  * by Electron's macOS sandbox — see issue #697).
  */
 
 import { spawn, type ChildProcess } from 'child_process';
-import { CraftMcpClient } from './client.js';
+import { CodyMcpClient } from './client.js';
 import { debug } from '../utils/debug.ts';
 import { normalizeMcpUrl } from '../sources/server-builder.ts';
 import type { McpTransport } from '../sources/types.ts';
@@ -139,7 +139,7 @@ function classifyConnectionError(err: unknown): McpValidationResult {
 }
 
 /**
- * Validates an HTTP/SSE MCP connection by connecting via CraftMcpClient and
+ * Validates an HTTP/SSE MCP connection by connecting via CodyMcpClient and
  * listing tools. The internal `connect()` call performs a `listTools()` health
  * check, so a successful connect proves the server is reachable and responsive.
  */
@@ -156,9 +156,9 @@ export async function validateMcpConnection(
     ...(config.mcpAccessToken ? { Authorization: `Bearer ${config.mcpAccessToken}` } : {}),
   };
 
-  // SSE transport is not supported by CraftMcpClient (HTTP only). Streamable
+  // SSE transport is not supported by CodyMcpClient (HTTP only). Streamable
   // HTTP is the modern transport; SSE servers will surface a clear connect error.
-  const mcpClient = new CraftMcpClient({
+  const mcpClient = new CodyMcpClient({
     transport: 'http',
     url: mcpUrl,
     headers: Object.keys(headers).length > 0 ? headers : undefined,
@@ -341,7 +341,7 @@ export async function validateStdioMcpConnection(
 
       // Create MCP client
       client = new Client(
-        { name: 'craft-agent-validator', version: '1.0.0' },
+        { name: 'cody-agent-validator', version: '1.0.0' },
         { capabilities: {} }
       );
 

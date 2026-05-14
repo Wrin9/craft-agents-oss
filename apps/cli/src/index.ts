@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 /**
- * craft-cli — Terminal client for Craft Agent server.
+ * cody-cli — Terminal client for Cody Agent server.
  *
- * Connects over WebSocket (ws:// or wss://) to a running Craft Agent server
+ * Connects over WebSocket (ws:// or wss://) to a running Cody Agent server
  * and provides commands for listing resources, managing sessions, sending
  * messages with real-time streaming, and validating server health.
  */
@@ -1376,7 +1376,7 @@ export function getValidateSteps(): ValidateStep[] {
 mkdir -p "${skillDir}" && cat > "${skillDir}/SKILL.md" << 'SKILLEOF'
 ---
 name: "CLI Validate Skill"
-description: "Validation skill created by craft-cli"
+description: "Validation skill created by cody-cli"
 requiredSources:
   - "${sourceSlug}"
 ---
@@ -1891,9 +1891,9 @@ export async function runValidation(
 // ---------------------------------------------------------------------------
 
 function printHelp(): void {
-  process.stdout.write(`craft-cli — Terminal client for Craft Agent server
+  process.stdout.write(`cody-cli — Terminal client for Cody Agent server
 
-Usage: craft-cli [options] <command> [args...]
+Usage: cody-cli [options] <command> [args...]
 
 Connection:
   --url <ws[s]://...>    Server URL (default: $CRAFT_SERVER_URL)
@@ -1936,21 +1936,21 @@ Commands:
                          --verbose, -v       Show server stderr output
 
 Examples:
-  craft-cli run "What files are in the current directory?"
-  craft-cli run --source craft-kb "Summarize today's daily note"
-  craft-cli run --workspace-dir .github/agents --source craft-public "Read the doc"
-  craft-cli run --provider openai --model gpt-4o "Summarize this repo"
-  OPENAI_API_KEY=sk-... craft-cli run --provider openai "Hello"
-  GOOGLE_API_KEY=... craft-cli run --provider google --model gemini-2.0-flash "Hello"
-  DEEPSEEK_API_KEY=sk-... craft-cli run --provider deepseek --model deepseek-v4-flash "Hello"
-  echo "Analyze this code" | craft-cli run
-  craft-cli ping
-  craft-cli sessions
-  craft-cli send abc-123 "What files are in the current directory?"
-  echo "Summarize this" | craft-cli send abc-123
-  craft-cli --validate-server
-  craft-cli invoke system:homeDir
-  craft-cli --json workspaces | jq '.[].name'
+  cody-cli run "What files are in the current directory?"
+  cody-cli run --source craft-kb "Summarize today's daily note"
+  cody-cli run --workspace-dir .github/agents --source craft-public "Read the doc"
+  cody-cli run --provider openai --model gpt-4o "Summarize this repo"
+  OPENAI_API_KEY=sk-... cody-cli run --provider openai "Hello"
+  GOOGLE_API_KEY=... cody-cli run --provider google --model gemini-2.0-flash "Hello"
+  DEEPSEEK_API_KEY=sk-... cody-cli run --provider deepseek --model deepseek-v4-flash "Hello"
+  echo "Analyze this code" | cody-cli run
+  cody-cli ping
+  cody-cli sessions
+  cody-cli send abc-123 "What files are in the current directory?"
+  echo "Summarize this" | cody-cli send abc-123
+  cody-cli --validate-server
+  cody-cli invoke system:homeDir
+  cody-cli --json workspaces | jq '.[].name'
 `)
 }
 

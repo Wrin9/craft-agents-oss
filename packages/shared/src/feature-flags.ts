@@ -72,7 +72,7 @@ export const FEATURE_FLAGS = {
     return isDeveloperFeedbackEnabled();
   },
   /**
-   * Enable craft-agent CLI guidance and guardrails.
+   * Enable cody-agent CLI guidance and guardrails.
    *
    * Defaults to disabled. Override with CRAFT_FEATURE_CRAFT_AGENTS_CLI=1|0.
    */

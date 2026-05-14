@@ -130,7 +130,7 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
     }
   })
 
-  // Get default permissions from ~/.craft-agent/permissions/default.json
+  // Get default permissions from ~/.cody-agent/permissions/default.json
   server.handle(RPC_CHANNELS.permissions.GET_DEFAULTS, async () => {
     const { existsSync, readFileSync } = await import('fs')
     const { getAppPermissionsDir } = await import('@craft-agent/shared/agent')
@@ -170,15 +170,15 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
         return { success: false, error: 'Source has not been tested yet' }
       }
 
-      const { CraftMcpClient } = await import('@craft-agent/shared/mcp')
-      let client: InstanceType<typeof CraftMcpClient>
+      const { CodyMcpClient } = await import('@craft-agent/shared/mcp')
+      let client: InstanceType<typeof CodyMcpClient>
 
       if (source.config.mcp.transport === 'stdio') {
         if (!source.config.mcp.command) {
           return { success: false, error: 'Stdio MCP source is missing required "command" field' }
         }
         log.info(`Fetching MCP tools via stdio: ${source.config.mcp.command}`)
-        client = new CraftMcpClient({
+        client = new CodyMcpClient({
           transport: 'stdio',
           command: source.config.mcp.command,
           args: source.config.mcp.args,
@@ -200,7 +200,7 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
         }
 
         log.info(`Fetching MCP tools from ${source.config.mcp.url}`)
-        client = new CraftMcpClient({
+        client = new CodyMcpClient({
           transport: 'http',
           url: source.config.mcp.url,
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,

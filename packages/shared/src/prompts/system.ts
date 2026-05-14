@@ -587,19 +587,19 @@ Read relevant context files using the Read tool - they contain architecture info
 | PDF Preview | \`${DOC_REFS.pdfPreview}\` | When displaying PDF documents inline |
 | Image Preview | \`${DOC_REFS.imagePreview}\` | When displaying local image files inline |
 | Browser Tools | \`${DOC_REFS.browserTools}\` | When using in-app browser tools (\`browser_tool\`) |
-| LLM Tool | \`${DOC_REFS.llmTool}\` | When using \`call_llm\` for subtasks |${FEATURE_FLAGS.craftAgentsCli ? `
-| Cody CLI | \`${DOC_REFS.craftCli}\` | When managing labels/sources/skills/automations via \`craft-agent\` |` : ''}
+| LLM Tool | \`${DOC_REFS.llmTool}\` | When using \`call_llm\` for subtasks |${FEATURE_FLAGS.codyAgentCli ? `
+| Cody CLI | \`${DOC_REFS.craftCli}\` | When managing labels/sources/skills/automations via \`cody-agent\` |` : ''}
 
-**IMPORTANT:** Always read the relevant doc file BEFORE making changes. Do NOT guess schemas - these have specific patterns that differ from standard approaches.${FEATURE_FLAGS.craftAgentsCli ? `
+**IMPORTANT:** Always read the relevant doc file BEFORE making changes. Do NOT guess schemas - these have specific patterns that differ from standard approaches.${FEATURE_FLAGS.codyAgentCli ? `
 
 ## Cody Agent CLI
 
-Prefer \`craft-agent\` CLI over direct file edits for labels, sources, skills, and automations.
+Prefer \`cody-agent\` CLI over direct file edits for labels, sources, skills, and automations.
 
-- Labels help: \`craft-agent label --help\`
-- Sources help: \`craft-agent source --help\`
-- Skills help: \`craft-agent skill --help\`
-- Automations help: \`craft-agent automation --help\`
+- Labels help: \`cody-agent label --help\`
+- Sources help: \`cody-agent source --help\`
+- Skills help: \`cody-agent skill --help\`
+- Automations help: \`cody-agent automation --help\`
 - Canonical reference: \`${DOC_REFS.craftCli}\`` : ''}
 
 ## User preferences
@@ -704,7 +704,7 @@ The \`session\` MCP server provides tools for managing external sources:
 
 **Source creation workflow:**
 1. Read \`${DOC_REFS.sources}\` for the full setup guide
-2. Search \`craft-agents-docs\` for service-specific guides
+2. Search \`cody-agents-docs\` for service-specific guides
 3. Create \`config.json\` in \`sources/{slug}/\`
 4. Create \`permissions.json\` for Explore mode
 5. Write \`guide.md\` with usage instructions

@@ -287,23 +287,23 @@ export function buildEnvFromPayload(event: AutomationEvent, payload: BaseEventPa
  * Unlike buildEnvFromPayload (used by prompt actions), this:
  * - Does NOT spread process.env (no secret leakage)
  * - Does NOT apply shell sanitization (irrelevant for HTTP context)
- * - Only injects CRAFT_WH_* user-defined vars from process.env (webhook secrets)
+ * - Only injects CODY_WH_* user-defined vars from process.env (webhook secrets)
  * - Includes CRAFT_* system vars derived from the event payload
  *
  * Users set webhook secrets in their shell profile:
- *   export CRAFT_WH_SLACK_URL="https://hooks.slack.com/services/T.../B.../xxx"
- *   export CRAFT_WH_DISCORD_TOKEN="abc123"
+ *   export CODY_WH_SLACK_URL="https://hooks.slack.com/services/T.../B.../xxx"
+ *   export CODY_WH_DISCORD_TOKEN="abc123"
  *
  * Then reference them in automations.json:
- *   "url": "${CRAFT_WH_SLACK_URL}"
- *   "headers": { "Authorization": "Bearer ${CRAFT_WH_DISCORD_TOKEN}" }
+ *   "url": "${CODY_WH_SLACK_URL}"
+ *   "headers": { "Authorization": "Bearer ${CODY_WH_DISCORD_TOKEN}" }
  */
 export function buildWebhookEnv(event: AutomationEvent, payload: BaseEventPayload): Record<string, string> {
   const env = buildBaseEventEnv(event, payload);
 
-  // User-defined webhook secrets: only CRAFT_WH_* from process.env
+  // User-defined webhook secrets: only CODY_WH_* from process.env
   for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith('CRAFT_WH_') && value !== undefined) {
+    if (key.startsWith('CODY_WH_') && value !== undefined) {
       env[key] = value;
     }
   }

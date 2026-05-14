@@ -27,7 +27,7 @@ export const DEBUG = INTERCEPTOR_LOGGING_ENABLED &&
   (process.argv.includes('--debug') || process.env.CRAFT_DEBUG === '1');
 
 /** Config file path for reading settings in the SDK subprocess */
-const _getConfigDir = () => process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent');
+const _getConfigDir = () => process.env.CODY_CONFIG_DIR || process.env.CODY_CONFIG_DIR || join(homedir(), '.cody-agent');
 export const CONFIG_FILE = join(_getConfigDir(), 'config.json');
 
 /** Session directory — set by env var (subprocess) or setSessionDir() (main process) */

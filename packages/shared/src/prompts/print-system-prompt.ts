@@ -68,7 +68,7 @@ printAnnotation('  7. Debug Mode Context (if enabled) - formatDebugModeContext()
 const systemPrompt = getSystemPrompt(
   undefined, // No pinned preferences (use current from disk)
   { enabled: false }, // Debug mode disabled for cleaner output
-  '/Users/example/.craft-agent/workspaces/abc123' // Example workspace path
+  '/Users/example/.cody-agent/workspaces/abc123' // Example workspace path
 );
 
 printSection('FULL STATIC SYSTEM PROMPT', systemPrompt, colors.green);
@@ -79,7 +79,7 @@ console.log(`\n${colors.bold}Static System Prompt Length: ${systemPrompt.length.
 const systemPromptWithDebug = getSystemPrompt(
   undefined,
   { enabled: true, logFilePath: '~/Library/Logs/@craft-agent/electron/main.log' },
-  '/Users/example/.craft-agent/workspaces/abc123'
+  '/Users/example/.cody-agent/workspaces/abc123'
 );
 console.log(`${colors.dim}With debug mode: ${systemPromptWithDebug.length.toLocaleString()} characters (+${(systemPromptWithDebug.length - systemPrompt.length).toLocaleString()})${colors.reset}`);
 
@@ -98,7 +98,7 @@ printAnnotation('Added first to user message for prompt caching optimization');
 // 2. Session State
 const sessionState = formatSessionState('260121-example-session', {
   plansFolderPath:
-    '/Users/example/.craft-agent/workspaces/abc123/sessions/260121-example-session/plans',
+    '/Users/example/.cody-agent/workspaces/abc123/sessions/260121-example-session/plans',
 });
 printSection('2. SESSION STATE - formatSessionState()', sessionState, colors.magenta);
 printAnnotation('Contains: sessionId, permissionMode, modeTransition/modeChangedBy/modeChangedAt/modeVersion (when available), plansFolderPath');
@@ -221,7 +221,7 @@ ${colors.bold}Dynamic User Message Components (per message):${colors.reset}
 
 ${colors.bold}Key Files:${colors.reset}
   packages/shared/src/prompts/system.ts          ${colors.dim}// Main prompt assembly${colors.reset}
-  packages/shared/src/agent/craft-agent.ts       ${colors.dim}// User message building${colors.reset}
+  packages/shared/src/agent/cody-agent.ts       ${colors.dim}// User message building${colors.reset}
   packages/shared/src/agent/mode-manager.ts      ${colors.dim}// Permission modes${colors.reset}
   packages/shared/src/config/preferences.ts      ${colors.dim}// User preferences${colors.reset}
 `);

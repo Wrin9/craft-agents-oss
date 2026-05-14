@@ -2,7 +2,7 @@
   "name": "@cody-agent/core",
   "version": "0.1.0",
   "license": "Apache-2.0",
-  "description": "Cody Agent — unified cognitive agent with four-layer memory, continuous learning, proactive thinking, and self-evolution",
+  "description": "Cody Agent \u2014 unified cognitive agent with four-layer memory, continuous learning, proactive thinking, and self-evolution",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",

@@ -10,13 +10,13 @@
  * Instance 1 (-1 suffix): ~/.cody-agent-1/
  * Instance 2 (-2 suffix): ~/.cody-agent-2/
  *
- * Also supports legacy CRAFT_CONFIG_DIR for backward compatibility.
+ * Also supports legacy CODY_CONFIG_DIR for backward compatibility.
  */
 
 import { homedir } from 'os';
 import { join } from 'path';
 
 // Allow override via environment variable for multi-instance dev
-// Supports both CODY_CONFIG_DIR (new) and CRAFT_CONFIG_DIR (legacy) env vars
+// Supports both CODY_CONFIG_DIR (new) and CODY_CONFIG_DIR (legacy) env vars
 // Falls back to default ~/.cody-agent/ for production
-export const CONFIG_DIR = process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent');
+export const CONFIG_DIR = process.env.CODY_CONFIG_DIR || process.env.CODY_CONFIG_DIR || join(homedir(), '.cody-agent');

@@ -46,10 +46,10 @@ export interface PrerequisiteManagerConfig {
 // ============================================================
 
 /** Slugs that are exempt from prerequisite checks (internal sources) */
-const EXEMPT_SLUGS = new Set(['session', 'craft-agents-docs']);
+const EXEMPT_SLUGS = new Set(['session', 'cody-agent-docs']);
 
 /** Global browser tools docs path required before browser tool usage. */
-const BROWSER_TOOLS_DOC_PATH = resolve(join(process.env.CODY_CONFIG_DIR || process.env.CRAFT_CONFIG_DIR || join(homedir(), '.cody-agent'), 'docs', 'browser-tools.md'));
+const BROWSER_TOOLS_DOC_PATH = resolve(join(process.env.CODY_CONFIG_DIR || process.env.CODY_CONFIG_DIR || join(homedir(), '.cody-agent'), 'docs', 'browser-tools.md'));
 
 // ============================================================
 // Rules

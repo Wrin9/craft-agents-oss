@@ -17,7 +17,7 @@
  *
  * Arguments:
  *   --session-id: Unique session identifier
- *   --workspace-root: Path to workspace folder (~/.craft-agent/workspaces/{id})
+ *   --workspace-root: Path to workspace folder (~/.cody-agent/workspaces/{id})
  *   --plans-folder: Path to session's plans folder
  */
 
@@ -217,8 +217,8 @@ function createCodexContext(config: SessionConfig): SessionToolContext {
     // Preferences: write directly to preferences.json
     updatePreferences: (updates: Record<string, unknown>) => {
       // Resolve preferences path from config dir (parent of workspaces dir)
-      // workspaceRootPath = ~/.craft-agent/workspaces/{id}
-      // preferencesPath = ~/.craft-agent/preferences.json
+      // workspaceRootPath = ~/.cody-agent/workspaces/{id}
+      // preferencesPath = ~/.cody-agent/preferences.json
       const configDir = join(workspaceRootPath, '..', '..');
       const prefsPath = join(configDir, 'preferences.json');
       try {
@@ -242,7 +242,7 @@ function createCodexContext(config: SessionConfig): SessionToolContext {
 
     // Developer feedback: write one JSON file per entry to {configDir}/feedback/
     submitFeedback: (feedback) => {
-      const configDir = process.env.CRAFT_CONFIG_DIR || join(workspaceRootPath, '..', '..');
+      const configDir = process.env.CODY_CONFIG_DIR || join(workspaceRootPath, '..', '..');
       const feedbackDir = join(configDir, 'feedback');
       mkdirSync(feedbackDir, { recursive: true });
       const filePath = join(feedbackDir, `${feedback.id}.json`);
@@ -279,13 +279,13 @@ let docsClient: Client | null = null;
 let docsTools: Tool[] = [];
 
 /**
- * Connect to the craft-agents-docs MCP server and fetch its tool definitions.
+ * Connect to the cody-agent-docs MCP server and fetch its tool definitions.
  * Falls back gracefully if the server is unreachable (tools will just be empty).
  */
 async function connectDocsUpstream(): Promise<void> {
   try {
     const client = new Client(
-      { name: 'craft-agent-session-proxy', version: '1.0.0' },
+      { name: 'cody-agent-session-proxy', version: '1.0.0' },
       { capabilities: {} }
     );
 
@@ -511,7 +511,7 @@ async function main() {
   // Create MCP server
   const server = new Server(
     {
-      name: 'craft-agent-session',
+      name: 'cody-agent-session',
       version: '0.3.1',
     },
     {

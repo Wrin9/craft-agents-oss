@@ -31,10 +31,10 @@ export { expandPath, normalizePath, pathStartsWith, toPortablePath };
  */
 const CONFIG_FILE_PATTERNS = [
   // Cody Agent configs
-  /\.craft-agent\/.*\/(config|permissions|theme|guide|labels|statuses)\.json$/,
-  /\.craft-agent\/config\.json$/,
-  /\.craft-agent\/preferences\.json$/,
-  /\.craft-agent\/.*\/SKILL\.md$/,
+  /\.cody-agent\/.*\/(config|permissions|theme|guide|labels|statuses)\.json$/,
+  /\.cody-agent\/config\.json$/,
+  /\.cody-agent\/preferences\.json$/,
+  /\.cody-agent\/.*\/SKILL\.md$/,
   // Common config files
   /package\.json$/,
   /tsconfig\.json$/,

@@ -420,7 +420,7 @@ function buildCliDomainBlockMessage(namespace: CliDomainNamespace, context: stri
 
   return [
     `${context}`,
-    `Use \`craft-agent ${namespace} ...\` instead.`,
+    `Use \`cody-agent ${namespace} ...\` instead.`,
     `Run \`${policy.helpCommand}\` for the full ${noun} command reference.`,
     '',
     quickExamplesHeading,
@@ -518,7 +518,7 @@ export function getConfigCliRedirect(
 }
 
 /**
- * Block bash commands that operate on guarded config paths unless they use craft-agent commands.
+ * Block bash commands that operate on guarded config paths unless they use cody-agent commands.
  * Current guarded domains in Bash are declared in shared CLI domain policy.
  */
 export function getConfigDomainBashRedirect(
@@ -529,7 +529,7 @@ export function getConfigDomainBashRedirect(
   const command = typeof input.command === 'string' ? input.command.trim() : '';
   if (!command) return null;
 
-  if (/^craft-agent\s+(label|automation|source|skill)\b/.test(command)) {
+  if (/^cody-agent\s+(label|automation|source|skill)\b/.test(command)) {
     return null;
   }
 
@@ -658,7 +658,7 @@ export interface PrerequisiteManagerLike {
 }
 
 /** Built-in MCP servers that are always available (not user sources) */
-const BUILT_IN_MCP_SERVERS = new Set(['session', 'craft-agents-docs']);
+const BUILT_IN_MCP_SERVERS = new Set(['session', 'cody-agent-docs']);
 
 /** File write tools that require permission in ask mode */
 const FILE_WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
@@ -804,7 +804,7 @@ export function runPreToolUseChecks(ctx: PreToolUseInput): PreToolUseCheckResult
     wasModified = true;
   }
 
-  // 5b. Config-domain Bash guard (block direct labels/automations path operations unless using craft-agent)
+  // 5b. Config-domain Bash guard (block direct labels/automations path operations unless using cody-agent)
   if (FEATURE_FLAGS.craftAgentsCli && toolName === 'Bash') {
     const configDomainBashRedirect = getConfigDomainBashRedirect(currentInput, workspaceRootPath, workingDirectory);
     if (configDomainBashRedirect) {
