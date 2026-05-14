@@ -1749,7 +1749,7 @@ function AppShellContent({
 
   // Manual Add Source dialog state
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false)
-  const [aiAddPopoverOpen, setAiAddPopoverOpen] = useState(false)
+  const [aiSourceEditOpen, setAiSourceEditOpen] = useState(false)
 
   // Stores the Y position of the last right-clicked sidebar item so the EditPopover
   // appears near it rather than at a fixed location. Updated synchronously before
@@ -3215,37 +3215,14 @@ function AppShellContent({
                     </DropdownMenu>
                     )
                   )}
-                  {/* Add Source button (only for sources mode) - dropdown with Manual + AI options */}
+                  {/* Add Source button (only for sources mode) */}
                   {isSourcesNavigation(navState) && activeWorkspace && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <HeaderIconButton
-                          icon={<Plus className="h-4 w-4" />}
-                          tooltip={t("sidebarMenu.addSource")}
-                          data-tutorial="add-source-button"
-                        />
-                      </DropdownMenuTrigger>
-                      <StyledDropdownMenuContent align="end" className="w-48">
-                        <StyledDropdownMenuItem onClick={() => setAddSourceDialogOpen(true)}>
-                          <Server className="h-3.5 w-3.5" />
-                          {t('addSource.manualAdd', 'Manual Setup')}
-                        </StyledDropdownMenuItem>
-                        <StyledDropdownMenuItem asChild>
-                          <EditPopover
-                            trigger={
-                              <button type="button" className="relative flex cursor-default items-center gap-2 text-sm w-full text-left">
-                                <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                                {t('addSource.aiAdd', 'AI Setup')}
-                              </button>
-                            }
-                            {...getEditConfig(
-                              sourceFilter?.kind === 'type' ? `add-source-${sourceFilter.sourceType}` as EditContextKey : 'add-source',
-                              activeWorkspace.rootPath
-                            )}
-                          />
-                        </StyledDropdownMenuItem>
-                      </StyledDropdownMenuContent>
-                    </DropdownMenu>
+                    <HeaderIconButton
+                      icon={<Plus className="h-4 w-4" />}
+                      tooltip={t("sidebarMenu.addSource")}
+                      data-tutorial="add-source-button"
+                      onClick={() => setAddSourceDialogOpen(true)}
+                    />
                   )}
                   {/* Add Skill button (only for skills mode) */}
                   {isSkillsNavigation(navState) && activeWorkspace && (
@@ -3680,13 +3657,32 @@ function AppShellContent({
         onTransferComplete={handleTransferComplete}
       />
 
-      {/* Manual Add Source dialog */}
+      {/* Add Source dialog (JSON / Form / AI tabs) */}
       <AddSourceDialog
         open={addSourceDialogOpen}
         onOpenChange={setAddSourceDialogOpen}
         onSubmit={handleAddSource}
         workspaceId={activeWorkspaceId || ''}
+        onOpenAI={() => {
+          setAddSourceDialogOpen(false)
+          // Small delay so dialog close animation completes
+          setTimeout(() => setAiSourceEditOpen(true), 100)
+        }}
       />
+
+      {/* AI Source EditPopover — triggered from AddSourceDialog AI tab */}
+      {activeWorkspace && (
+        <EditPopover
+          open={aiSourceEditOpen}
+          onOpenChange={setAiSourceEditOpen}
+          trigger={<span />}
+          side="right"
+          {...getEditConfig(
+            'add-source' as EditContextKey,
+            activeWorkspace.rootPath
+          )}
+        />
+      )}
 
       {/* Messaging dialogs (pairing-code + WA connect) — driven by messagingDialogAtom.
           Mounted here so they survive context-menu / dropdown close. */}

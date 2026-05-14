@@ -34,6 +34,8 @@ import {
   Info,
   FileJson,
   ListPlus,
+  MessageSquare,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +45,8 @@ export interface AddSourceDialogProps {
   onSubmit: (config: AddSourceFormData) => Promise<void>
   /** Workspace ID for workspace-scoped sources */
   workspaceId: string
+  /** Called when user wants AI-assisted setup */
+  onOpenAI?: () => void
 }
 
 export interface AddSourceFormData {
@@ -69,7 +73,7 @@ export interface AddSourceFormData {
   headerValue?: string
 }
 
-type InputMode = 'form' | 'json'
+type InputMode = 'json' | 'form' | 'ai'
 
 interface ParsedServer {
   name: string
@@ -178,6 +182,7 @@ export function AddSourceDialog({
   onOpenChange,
   onSubmit,
   workspaceId,
+  onOpenAI,
 }: AddSourceDialogProps) {
   const { t } = useTranslation()
 
@@ -416,6 +421,21 @@ export function AddSourceDialog({
             <ListPlus className="h-3.5 w-3.5" />
             {t('addSource.modeForm', 'Form')}
           </button>
+          {onOpenAI && (
+            <button
+              type="button"
+              onClick={() => setMode('ai')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-colors',
+                mode === 'ai'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-foreground/50 hover:text-foreground/70'
+              )}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              {t('addSource.modeAI', 'AI Setup')}
+            </button>
+          )}
         </div>
 
         {/* Error */}
@@ -712,7 +732,34 @@ export function AddSourceDialog({
           </div>
         )}
 
-        <DialogFooter>
+        {/* ============ AI Mode ============ */}
+        {mode === 'ai' && (
+          <div className="flex flex-col items-center justify-center py-8 gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-accent" />
+            </div>
+            <div className="text-center space-y-1.5 max-w-xs">
+              <h3 className="text-sm font-medium">
+                {t('addSource.aiTitle', 'AI-Assisted Setup')}
+              </h3>
+              <p className="text-xs text-foreground/50">
+                {t('addSource.aiDescription', 'Describe what you want to connect and the AI assistant will configure the source for you — including auth, endpoints, and testing.')}
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                onOpenChange(false)
+                onOpenAI?.()
+              }}
+              className="gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              {t('addSource.startAIChat', 'Start AI Chat')}
+            </Button>
+          </div>
+        )}
+
+        <DialogFooter className={mode === 'ai' ? 'hidden' : ''}>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             {t('common.cancel', 'Cancel')}
           </Button>
