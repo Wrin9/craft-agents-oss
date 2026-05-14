@@ -27,14 +27,16 @@ export const HANDLED_CHANNELS = [
 export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): void {
   const log = deps.platform.logger
 
-  // Get all sources for a workspace
+  // Get all sources for a workspace (includes global + workspace + builtin)
   server.handle(RPC_CHANNELS.sources.GET, async (_ctx, workspaceId: string) => {
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) {
       log.error(`SOURCES_GET: Workspace not found: ${workspaceId}`)
       return []
     }
-    return loadWorkspaceSources(workspace.rootPath)
+    // loadAllSources merges global + workspace + builtin, workspace overrides global on slug conflict
+    const { loadAllSources } = await import('@craft-agent/shared/sources')
+    return loadAllSources(workspace.rootPath)
   })
 
   // Create a new source
