@@ -32,6 +32,8 @@ import {
   Bot,
   Info,
   MailOpen,
+  Server,
+  MessageSquare,
 } from "lucide-react"
 // SessionStatusIcons no longer used - icons come from dynamic sessionStatuses
 import { SourceAvatar } from "@/components/ui/source-avatar"
@@ -117,6 +119,7 @@ import {
 } from "@/contexts/NavigationContext"
 import type { SettingsSubpage } from "../../../shared/types"
 import { SourcesListPanel } from "./SourcesListPanel"
+import { AddSourceDialog, type AddSourceFormData } from "./AddSourceDialog"
 import { SkillsListPanel } from "./SkillsListPanel"
 import { AutomationsListPanel } from "../automations/AutomationsListPanel"
 import { APP_EVENTS, AGENT_EVENTS, type AutomationFilterKind, AUTOMATION_TYPE_TO_FILTER_KIND } from "../automations/types"
@@ -1744,6 +1747,9 @@ function AppShellContent({
   // add-source variants: add-source (generic), add-source-api, add-source-mcp, add-source-local
   const [editPopoverOpen, setEditPopoverOpen] = useState<'statuses' | 'labels' | 'views' | 'add-source' | 'add-source-api' | 'add-source-mcp' | 'add-source-local' | 'add-skill' | 'add-label' | 'automation-config' | null>(null)
 
+  // Manual Add Source dialog state
+  const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false)
+
   // Stores the Y position of the last right-clicked sidebar item so the EditPopover
   // appears near it rather than at a fixed location. Updated synchronously before
   // the setTimeout that opens the popover, ensuring the ref is set before render.
@@ -1919,6 +1925,55 @@ function AppShellContent({
     } catch (error) {
       console.error('[Chat] Failed to toggle source scope:', error)
       toast.error(t('toast.failedToDeleteSource'))
+    }
+  }, [activeWorkspace])
+
+  // Handle manual source creation from AddSourceDialog
+  const handleAddSource = useCallback(async (formData: AddSourceFormData) => {
+    try {
+      if (formData.scope === 'global') {
+        await window.electronAPI.createGlobalSource({
+          name: formData.name,
+          type: formData.type,
+          enabled: true,
+          mcp: formData.type === 'mcp' ? {
+            transport: formData.mcpTransport,
+            ...(formData.mcpTransport === 'http' ? { url: formData.mcpUrl, authType: formData.mcpAuthType || 'none' } : {}),
+            ...(formData.mcpTransport === 'stdio' ? {
+              command: formData.mcpCommand,
+              args: formData.mcpArgs ? formData.mcpArgs.split(/\s+/) : [],
+              env: formData.mcpEnv ? Object.fromEntries(formData.mcpEnv.split('\n').filter(l => l.includes('=')).map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()] })) : undefined,
+            } : {}),
+          } : undefined,
+          api: formData.type === 'api' ? {
+            baseUrl: formData.apiBaseUrl,
+            authType: formData.apiAuthType || 'bearer',
+          } : undefined,
+        })
+      } else if (activeWorkspace) {
+        await window.electronAPI.createSource(activeWorkspace.id, {
+          name: formData.name,
+          type: formData.type,
+          enabled: true,
+          mcp: formData.type === 'mcp' ? {
+            transport: formData.mcpTransport,
+            ...(formData.mcpTransport === 'http' ? { url: formData.mcpUrl, authType: formData.mcpAuthType || 'none' } : {}),
+            ...(formData.mcpTransport === 'stdio' ? {
+              command: formData.mcpCommand,
+              args: formData.mcpArgs ? formData.mcpArgs.split(/\s+/) : [],
+              env: formData.mcpEnv ? Object.fromEntries(formData.mcpEnv.split('\n').filter(l => l.includes('=')).map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()] })) : undefined,
+            } : {}),
+          } : undefined,
+          api: formData.type === 'api' ? {
+            baseUrl: formData.apiBaseUrl,
+            authType: formData.apiAuthType || 'bearer',
+          } : undefined,
+        })
+      }
+      toast.success(t('addSource.created', 'Source created successfully'))
+    } catch (err) {
+      toast.error(t('toast.failedToDeleteSource'), { description: err instanceof Error ? err.message : undefined })
+      throw err // re-throw so dialog shows error
     }
   }, [activeWorkspace])
 
@@ -3125,21 +3180,37 @@ function AppShellContent({
                     </DropdownMenu>
                     )
                   )}
-                  {/* Add Source button (only for sources mode) - uses filter-aware edit config */}
+                  {/* Add Source button (only for sources mode) - dropdown with Manual + AI options */}
                   {isSourcesNavigation(navState) && activeWorkspace && (
-                    <EditPopover
-                      trigger={
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
                         <HeaderIconButton
                           icon={<Plus className="h-4 w-4" />}
                           tooltip={t("sidebarMenu.addSource")}
                           data-tutorial="add-source-button"
                         />
-                      }
-                      {...getEditConfig(
-                        sourceFilter?.kind === 'type' ? `add-source-${sourceFilter.sourceType}` as EditContextKey : 'add-source',
-                        activeWorkspace.rootPath
-                      )}
-                    />
+                      </DropdownMenuTrigger>
+                      <StyledDropdownMenuContent align="end" className="w-56">
+                        <StyledDropdownMenuItem onClick={() => setAddSourceDialogOpen(true)}>
+                          <Server className="h-3.5 w-3.5" />
+                          <span className="flex-1">{t('addSource.manualAdd', 'Manual Setup')}</span>
+                        </StyledDropdownMenuItem>
+                        <StyledDropdownMenuItem asChild>
+                          <EditPopover
+                            trigger={
+                              <span className="flex items-center gap-2 w-full">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                <span className="flex-1">{t('addSource.aiAdd', 'AI Setup')}</span>
+                              </span>
+                            }
+                            {...getEditConfig(
+                              sourceFilter?.kind === 'type' ? `add-source-${sourceFilter.sourceType}` as EditContextKey : 'add-source',
+                              activeWorkspace.rootPath
+                            )}
+                          />
+                        </StyledDropdownMenuItem>
+                      </StyledDropdownMenuContent>
+                    </DropdownMenu>
                   )}
                   {/* Add Skill button (only for skills mode) */}
                   {isSkillsNavigation(navState) && activeWorkspace && (
@@ -3572,6 +3643,14 @@ function AppShellContent({
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}
         onTransferComplete={handleTransferComplete}
+      />
+
+      {/* Manual Add Source dialog */}
+      <AddSourceDialog
+        open={addSourceDialogOpen}
+        onOpenChange={setAddSourceDialogOpen}
+        onSubmit={handleAddSource}
+        workspaceId={activeWorkspaceId || ''}
       />
 
       {/* Messaging dialogs (pairing-code + WA connect) — driven by messagingDialogAtom.
