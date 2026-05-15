@@ -191,6 +191,12 @@ export interface IMessagingGatewayRegistry {
     domain: 'lark' | 'feishu'
   }): Promise<void>
 
+  /** Test a WeChat iLink bot_token by calling getUpdates. */
+  testWeChatCredentials(botToken: string): Promise<{ success: boolean; botName?: string; error?: string }>
+
+  /** Save WeChat bot_token and (re)initialize the adapter. */
+  saveWeChatCredentials(workspaceId: string, botToken: string, skipValidation?: boolean): Promise<void>
+
   /** Disable a platform for a workspace, preserving WhatsApp auth state unless forgotten separately. */
   disconnectPlatform(workspaceId: string, platform: string): Promise<void>
 

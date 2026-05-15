@@ -53,6 +53,37 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     return { success: true }
   })
 
+  server.handle(RPC_CHANNELS.messaging.TEST_WECHAT, async (
+    _ctx,
+    { botToken }: { botToken: string },
+  ) => {
+    return registry.testWeChatCredentials(botToken)
+  })
+
+  server.handle(RPC_CHANNELS.messaging.SAVE_WECHAT, async (
+    ctx,
+    { botToken, skipValidation }: { botToken: string; skipValidation?: boolean },
+  ) => {
+    if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    await registry.saveWeChatCredentials(ctx.workspaceId, botToken, skipValidation)
+    return { success: true }
+  })
+
+  server.handle(RPC_CHANNELS.messaging.WC_GET_QR, async () => {
+    const { iLinkClient } = await import('@craft-agent/messaging-gateway')
+    const client = new iLinkClient()
+    return client.getBotQRCode()
+  })
+
+  server.handle(RPC_CHANNELS.messaging.WC_POLL_QR, async (
+    _ctx,
+    { qrcode }: { qrcode: string },
+  ) => {
+    const { iLinkClient } = await import('@craft-agent/messaging-gateway')
+    const client = new iLinkClient()
+    return client.getQRCodeStatus(qrcode)
+  })
+
   server.handle(RPC_CHANNELS.messaging.DISCONNECT, async (ctx, platform: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
     await registry.disconnectPlatform(ctx.workspaceId, platform)

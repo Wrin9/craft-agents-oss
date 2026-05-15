@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import { messagingDialogAtom } from '@/atoms/messaging'
 import { PairingCodeDialog } from './PairingCodeDialog'
 import { WhatsAppConnectDialog } from './WhatsAppConnectDialog'
+import { WeChatConnectDialog } from './WeChatConnectDialog'
 
 export function MessagingDialogHost() {
   const [state, setState] = useAtom(messagingDialogAtom)
@@ -109,6 +110,11 @@ export function MessagingDialogHost() {
         open={state.kind === 'wa_connect'}
         onOpenChange={(o) => { if (!o) close() }}
         onConnected={handleWhatsAppConnected}
+      />
+      <WeChatConnectDialog
+        open={state.kind === 'wc_connect'}
+        onOpenChange={(o) => { if (!o) close() }}
+        onSaved={close}
       />
     </>
   )

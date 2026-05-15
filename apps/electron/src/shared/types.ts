@@ -670,6 +670,10 @@ export interface ElectronAPI {
   saveTelegramToken(token: string): Promise<void>
   testLarkCredentials(creds: { appId: string; appSecret: string; domain: 'lark' | 'feishu' }): Promise<{ success: boolean; botName?: string; error?: string }>
   saveLarkCredentials(creds: { appId: string; appSecret: string; domain: 'lark' | 'feishu' }): Promise<void>
+  testWeChatCredentials(data: { botToken: string }): Promise<{ success: boolean; botName?: string; error?: string }>
+  saveWeChatCredentials(data: { botToken: string; skipValidation?: boolean }): Promise<void>
+  wechatGetQR(): Promise<{ qrcode: string; qrcode_img_content: string; ret: number }>
+  wechatPollQR(data: { qrcode: string }): Promise<{ status: string; bot_token?: string; baseurl?: string }>
   disconnectMessagingPlatform(platform: string): Promise<void>
   forgetMessagingPlatform(platform: string): Promise<void>
   getMessagingBindings(): Promise<Array<{ id: string; workspaceId: string; sessionId: string; platform: string; channelId: string; threadId?: number; channelName?: string; enabled: boolean; createdAt: number; accessMode?: MessagingBindingAccessMode; allowedSenderIds?: string[] }>>

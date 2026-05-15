@@ -14,8 +14,8 @@
  *     `tool_start`, back to "💭 thinking…" on `tool_result`, and replaces
  *     the whole bubble with the final text on `complete`. Intermediate
  *     assistant text (`text_complete` with `isIntermediate`) is dropped.
- *     On adapters without `messageEditing`, degrades to a single
- *     send-on-complete (identical to `final_only`).
+ *     On adapters without `messageEditing`, sends each status as a new
+ *     message and forwards intermediate text as live updates.
  *
  *   - `final_only`: silent until `complete`, then sends one message with
  *     the accumulated final text. Nothing is sent for empty completions.
@@ -336,11 +336,16 @@ export class Renderer {
         const isIntermediate = Boolean(event.isIntermediate)
         const text = typeof event.text === 'string' ? event.text : ''
         if (!isIntermediate && text.trim()) {
-          // Last assistant text of the run — keep it for the final edit.
+          // Last assistant text of the run — keep it for the final send.
           state.finalBuffer = appendFinal(state.finalBuffer, text)
         }
-        // Intermediate text is dropped. Make sure the bubble exists and shows
-        // thinking status so the user knows the run is alive.
+        if (isIntermediate && text.trim() && !adapter.capabilities.messageEditing) {
+          // No-edit adapters (WeChat) — send intermediate text as a live
+          // message so the user can see the agent's thought process in
+          // real-time, rather than silently dropping it.
+          await this.sendText(adapter, binding, text)
+        }
+        // Update the progress bubble (thinking indicator)
         await this.ensureProgressBubble(state, binding, adapter, THINKING_LABEL)
         return
       }
@@ -410,8 +415,17 @@ export class Renderer {
       }
       return
     }
-    if (!adapter.capabilities.messageEditing) return
     if (state.progressStatus === status) return
+    if (!adapter.capabilities.messageEditing) {
+      // Can't edit — send a new message for each status change so the
+      // user sees live progress (thinking → tool → thinking → …).
+      try {
+        const sent = await adapter.sendText(binding.channelId, status, bindingOpts(binding))
+        state.progressMessageId = sent.messageId
+        state.progressStatus = status
+      } catch {}
+      return
+    }
     await this.tryEditMessage(adapter, binding, state.progressMessageId, status, state)
     state.progressStatus = status
   }

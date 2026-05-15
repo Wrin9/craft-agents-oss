@@ -1,7 +1,7 @@
 /**
  * @craft-agent/messaging-gateway
  *
- * Messaging gateway for Cody Agent — Telegram & WhatsApp.
+ * Messaging gateway for Cody Agent — Telegram, WhatsApp, Lark & WeChat.
  */
 
 export { MessagingGateway, type GatewayOptions } from './gateway'
@@ -11,6 +11,18 @@ export {
   type WhatsAppConfig,
   type WhatsAppEvent,
 } from './adapters/whatsapp/index'
+export {
+  WeChatAdapter,
+  type WeChatQRStatus,
+  type WeChatQRCallback,
+} from './adapters/wechat/index'
+export {
+  iLinkClient,
+  encryptAesEcb,
+  decryptAesEcb,
+  type iLinkMessage,
+  type iLinkItem,
+} from './adapters/wechat/ilink'
 export { BindingStore } from './binding-store'
 export { ConfigStore } from './config-store'
 export { PairingCodeManager, PAIRING_TTL_MS, PAIRING_RATE_LIMIT_PER_MINUTE } from './pairing'

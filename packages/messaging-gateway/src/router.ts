@@ -115,6 +115,42 @@ export class Router {
       return
     }
 
+    // WeChat auto-binding: automatically create a session and bind it
+    // when a WeChat message arrives without an existing binding.
+    // This makes WeChat a "zero-config" messaging channel — just connect
+    // and start talking, no /new or /pair needed.
+    if (adapter.platform === 'wechat') {
+      this.log.info('wechat auto-binding: no binding found, creating session', {
+        event: 'wechat_auto_bind',
+        platform: msg.platform,
+        channelId: msg.channelId,
+      })
+
+      const sessionId = await this.commands.autoCreateAndBind(adapter, msg)
+      if (sessionId) {
+        // Re-route the message now that a binding exists
+        const fileAttachments = this.resolveAttachments(msg)
+        try {
+          await this.sessionManager.sendMessage(
+            sessionId,
+            msg.text,
+            fileAttachments,
+            undefined,
+            undefined,
+          )
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+          this.log.error('failed to route auto-bound wechat message', {
+            event: 'wechat_auto_bind_route_failed',
+            sessionId,
+            error: err,
+          })
+          await adapter.sendText(msg.channelId, `Failed to send message: ${errorMsg}`)
+        }
+        return
+      }
+    }
+
     this.log.info('routing inbound chat message to command handler', {
       event: 'message_unbound',
       platform: msg.platform,

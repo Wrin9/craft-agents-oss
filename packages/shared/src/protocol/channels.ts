@@ -408,6 +408,8 @@ export const RPC_CHANNELS = {
     SAVE_TELEGRAM: 'messaging:saveTelegram',
     TEST_LARK: 'messaging:testLark',
     SAVE_LARK: 'messaging:saveLark',
+    TEST_WECHAT: 'messaging:testWechat',
+    SAVE_WECHAT: 'messaging:saveWechat',
     DISCONNECT: 'messaging:disconnect',
     FORGET: 'messaging:forget',
     GET_BINDINGS: 'messaging:getBindings',
@@ -423,6 +425,14 @@ export const RPC_CHANNELS = {
     WA_SUBMIT_PHONE: 'messaging:wa:submitPhone',
     /** Broadcast to UI clients: QR string, pairing code, status, unavailable, error. */
     WA_UI_EVENT: 'messaging:wa:uiEvent',
+    // UI ↔ Server — WeChat QR scan connection flow
+    WC_START_CONNECT: 'messaging:wc:startConnect',
+    /** Broadcast to UI clients: QR image, status, error. */
+    WC_UI_EVENT: 'messaging:wc:uiEvent',
+    /** Request a fresh QR code from iLink API. Returns { qrcode, qrcode_img_content }. */
+    WC_GET_QR: 'messaging:wc:getQr',
+    /** Poll QR code scan status. Returns { status, bot_token? }. */
+    WC_POLL_QR: 'messaging:wc:pollQr',
     // UI ↔ Server — Access control (per-platform owners + per-binding allow-list)
     GET_PLATFORM_OWNERS: 'messaging:access:getOwners',
     SET_PLATFORM_OWNERS: 'messaging:access:setOwners',

@@ -137,6 +137,47 @@ export class Commands {
     this.access = access
   }
 
+/**
+ * Auto-create a session and bind it for platforms that use auto-binding
+ * (e.g. WeChat). Returns the sessionId of the created session, or null
+ * if creation failed.
+ */
+  async autoCreateAndBind(adapter: PlatformAdapter, msg: IncomingMessage): Promise<string | null> {
+    try {
+      const name = `WeChat ${msg.senderName ?? msg.senderId?.split('@')[0] ?? 'DM'}`
+      const session = await this.sessionManager.createSession(this.workspaceId, { name })
+
+      this.bindingStore.bind(
+        this.workspaceId,
+        session.id,
+        adapter.platform,
+        msg.channelId,
+        msg.senderName,
+        undefined,
+        msg.threadId,
+      )
+
+      this.log.info('session auto-created and bound', {
+        event: 'session_auto_created',
+        workspaceId: this.workspaceId,
+        sessionId: session.id,
+        platform: adapter.platform,
+        channelId: msg.channelId,
+      })
+
+      return session.id
+    } catch (err) {
+      this.log.error('failed to auto-create session', {
+        event: 'session_auto_create_failed',
+        workspaceId: this.workspaceId,
+        platform: adapter.platform,
+        channelId: msg.channelId,
+        error: err,
+      })
+      return null
+    }
+  }
+
   async handle(adapter: PlatformAdapter, msg: IncomingMessage): Promise<void> {
     const text = msg.text.trim()
     const replyOpts = msg.threadId !== undefined ? { threadId: msg.threadId } : {}
@@ -241,6 +282,12 @@ export class Commands {
         return true
       case '/stop':
         await this.handleStop(adapter, msg)
+        return true
+      case '/thinking':
+        await this.handleThinking(adapter, msg, true)
+        return true
+      case '/quiet':
+        await this.handleThinking(adapter, msg, false)
         return true
       default:
         return false
@@ -639,6 +686,27 @@ export class Commands {
     }
   }
 
+  private async handleThinking(adapter: PlatformAdapter, msg: IncomingMessage, enable: boolean): Promise<void> {
+    const replyOpts = msg.threadId !== undefined ? { threadId: msg.threadId } : {}
+    const binding = this.bindingStore.findByChannel(adapter.platform, msg.channelId, msg.threadId)
+    if (!binding) {
+      await adapter.sendText(msg.channelId, 'No session bound. Use /bind, /new, or /pair.', replyOpts)
+      return
+    }
+
+    const newMode = enable ? 'progress' : 'final_only'
+
+    // WeChat can't edit messages — only allow final_only and progress
+    // (progress will send a thinking bubble + final reply, no editing)
+    this.bindingStore.updateBindingConfig(binding.id, { responseMode: newMode })
+
+    const label = enable
+      ? 'Thinking mode ON — you\'ll see live progress (thinking, tool calls) as the agent works.'
+      : 'Quiet mode ON — only the final reply will be sent.'
+
+    await adapter.sendText(msg.channelId, label, replyOpts)
+  }
+
   private async handleHelp(adapter: PlatformAdapter, msg: IncomingMessage): Promise<void> {
     const bindLine = adapter.platform === 'whatsapp'
       ? '/bind — list recent sessions (then use /bind <number>)\n'
@@ -654,6 +722,8 @@ export class Commands {
       '/pair <code> — redeem an app-generated pairing code\n' +
       '/unbind — disconnect this chat\n' +
       '/status — show current binding\n' +
+      '/thinking — show live progress (thinking, tools)\n' +
+      '/quiet — only send final reply\n' +
       '/stop — abort current agent run\n' +
       '/help — show this message',
       replyOpts,

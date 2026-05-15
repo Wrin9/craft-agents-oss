@@ -9,7 +9,7 @@
 // Platform types
 // ---------------------------------------------------------------------------
 
-export type PlatformType = 'telegram' | 'whatsapp' | 'lark'
+export type PlatformType = 'telegram' | 'whatsapp' | 'lark' | 'wechat'
 
 // ---------------------------------------------------------------------------
 // Logger
@@ -70,7 +70,7 @@ export interface AdapterCapabilities {
   inlineButtons: boolean
   maxButtons: number
   maxMessageLength: number
-  markdown: 'v2' | 'whatsapp' | 'lark-post'
+  markdown: 'v2' | 'whatsapp' | 'lark-post' | 'wechat'
   webhookSupport: boolean
 }
 
@@ -301,6 +301,7 @@ export const DEFAULT_BINDING_CONFIG: BindingConfig = {
 export function getDefaultBindingConfig(platform: PlatformType): BindingConfig {
   return {
     ...DEFAULT_BINDING_CONFIG,
+    responseMode: platform === 'wechat' ? 'final_only' : DEFAULT_BINDING_CONFIG.responseMode,
     approvalChannel: platform === 'whatsapp' ? 'app' : DEFAULT_BINDING_CONFIG.approvalChannel,
   }
 }
@@ -508,6 +509,14 @@ export interface MessagingConfig {
        *  - `feishu` → open.feishu.cn (China)
        */
       domain?: 'lark' | 'feishu'
+    }
+    wechat?: {
+      enabled: boolean
+      /**
+       * iLink Bot API bot token, obtained via QR scan login flow.
+       * Stored as the credential token — the adapter uses Bearer auth.
+       */
+      // Token is stored in credential manager, not in config.
     }
   }
 }
