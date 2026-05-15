@@ -539,7 +539,36 @@ export function modelSupportsImages(
   connection: Pick<LlmConnection, 'providerType' | 'models' | 'customEndpoint'>,
   modelId: string,
 ): boolean {
-  if (!isCompatProvider(connection.providerType)) return true;
+  // For pi_compat providers, check per-model override or connection default
+  if (isCompatProvider(connection.providerType)) {
+    const entry = connection.models?.find(m =>
+      (typeof m === 'string' ? m : m.id) === modelId,
+    );
+    if (entry && typeof entry !== 'string' && typeof entry.supportsImages === 'boolean') {
+      return entry.supportsImages;
+    }
+    return connection.customEndpoint?.supportsImages ?? false;
+  }
+
+  // For pi providers with a piAuthProvider, check known text-only providers.
+  // Pi SDK's bundled model definitions declare input: ["text"] for these providers.
+  // The renderer doesn't have access to the full Pi model catalog, so we maintain
+  // a denylist of providers that are known to be text-only (no vision models).
+  const piCompat = connection as Pick<LlmConnection, 'providerType' | 'models' | 'customEndpoint' | 'piAuthProvider'> & { piAuthProvider?: string };
+  if (piCompat.piAuthProvider) {
+    const TEXT_ONLY_PI_PROVIDERS = new Set([
+      'deepseek',
+      'moonshot',       // moonshot-for-coding endpoint
+      'minimax',
+      'minimax-cn',
+    ]);
+    if (TEXT_ONLY_PI_PROVIDERS.has(piCompat.piAuthProvider)) {
+      return false;
+    }
+  }
+
+  // Default: assume vision-capable (Anthropic, OpenAI, Google, etc.)
+  return true;
 
   const entry = connection.models?.find(m =>
     (typeof m === 'string' ? m : m.id) === modelId,

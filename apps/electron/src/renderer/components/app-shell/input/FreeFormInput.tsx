@@ -1575,7 +1575,6 @@ export function FreeFormInput({
   const showVisionWarning =
     hasStagedImages
     && !!effectiveConnectionDetails
-    && isCompatProvider(effectiveConnectionDetails.providerType)
     && !modelSupportsImages(effectiveConnectionDetails, currentModel)
 
   return (
