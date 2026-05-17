@@ -10,6 +10,8 @@
 
 </div>
 
+**English** | **[中文](README.zh-CN.md)**
+
 Cody Agent is a fork of [Craft Agents](https://github.com/craft-ai-agents/craft-agents-oss) — an open-source AI desktop assistant built with Electron, React, and the Claude Agent SDK. This fork extends it with **WeChat integration**, **global cross-workspace messaging**, **cognitive memory**, and **mid-session model switching**.
 
 ## What's Different from Upstream
