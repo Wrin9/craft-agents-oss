@@ -31,7 +31,15 @@ Cody Agent is a fork of [Craft Agents](https://github.com/craft-ai-agents/craft-
 
 ### Download (macOS)
 
-Go to the [Releases](https://github.com/Wrin9/cody-agent/releases/latest) page and download `Cody-Agent-arm64.dmg` (Apple Silicon) or `Cody-Agent-x64.dmg` (Intel).
+Go to the [Releases](https://github.com/Wrin9/cody-agent/releases/latest) page and download the installer for your platform:
+
+| File | Platform | Size |
+|------|----------|------|
+| `Cody-Agent-arm64.dmg` | macOS (Apple Silicon M1/M2/M3/M4) | ~340 MB |
+| `Cody-Agent-x64.dmg` | macOS (Intel) | ~345 MB |
+| `Cody-Agent-x64.exe` | Windows (x64) | ~259 MB |
+
+#### macOS
 
 ```bash
 # Install
@@ -41,6 +49,14 @@ open Cody-Agent-arm64.dmg
 # First launch — bypass Gatekeeper (app is unsigned)
 # Right-click Cody Agent in Applications → Open
 ```
+
+#### Windows
+
+1. Download `Cody-Agent-x64.exe`
+2. Run the installer (one-click install to user directory)
+3. Launch from Start Menu or Desktop shortcut
+
+> **Linux:** Build from source — see [Build from Source](#build-from-source) below.
 
 ### Build from Source
 

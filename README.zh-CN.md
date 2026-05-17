@@ -31,7 +31,15 @@ Cody Agent 是 [Craft Agents](https://github.com/craft-ai-agents/craft-agents-os
 
 ### 下载安装（macOS）
 
-前往 [Releases](https://github.com/Wrin9/cody-agent/releases/latest) 页面下载 `Cody-Agent-arm64.dmg`（Apple Silicon）或 `Cody-Agent-x64.dmg`（Intel）。
+前往 [Releases](https://github.com/Wrin9/cody-agent/releases/latest) 页面下载对应平台的安装包：
+
+| 文件 | 平台 | 大小 |
+|------|------|------|
+| `Cody-Agent-arm64.dmg` | macOS（Apple Silicon M1/M2/M3/M4） | ~340 MB |
+| `Cody-Agent-x64.dmg` | macOS（Intel） | ~345 MB |
+| `Cody-Agent-x64.exe` | Windows（x64） | ~259 MB |
+
+#### macOS
 
 ```bash
 # 安装
@@ -41,6 +49,14 @@ open Cody-Agent-arm64.dmg
 # 首次启动 —— 绕过 Gatekeeper（应用未签名）
 # 在应用程序中右键点击 Cody Agent → 打开
 ```
+
+#### Windows
+
+1. 下载 `Cody-Agent-x64.exe`
+2. 运行安装程序（一键安装到用户目录）
+3. 从开始菜单或桌面快捷方式启动
+
+> **Linux：** 需从源码构建，见下方「从源码构建」章节。
 
 ### 从源码构建
 
