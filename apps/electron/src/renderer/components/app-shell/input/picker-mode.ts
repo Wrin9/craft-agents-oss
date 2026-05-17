@@ -7,12 +7,11 @@
  *
  * Precedence (highest first):
  *   1. unavailable     — current connection is gone / error state
- *   2. switcher        — empty session AND multiple connections configured
- *                        (lets the user pick a different connection BEFORE
- *                        the first message locks the session to one)
- *   3. locked-single   — `pi_compat` connection with ≤1 model and no
- *                        switcher available (mid-session, or only one
- *                        connection configured)
+ *   2. switcher        — multiple connections configured
+ *                        (always allows cross-connection model switching,
+ *                        including mid-session)
+ *   3. locked-single   — `pi_compat` connection with ≤1 model and only
+ *                        one connection configured
  *   4. flat            — fall-through: list models for the active connection
  *
  * Note: `switcher` deliberately wins over `locked-single`. Before #727 they
@@ -35,7 +34,9 @@ export interface PickerModeInput {
 
 export function derivePickerMode(input: PickerModeInput): PickerMode {
   if (input.connectionUnavailable) return 'unavailable'
-  if (input.isEmptySession && input.connectionCount > 1) return 'switcher'
+  // Multiple connections → always show the full connection+model switcher
+  // (previously only on empty sessions, now always)
+  if (input.connectionCount > 1) return 'switcher'
   if (input.connectionDefaultModel != null) return 'locked-single'
   return 'flat'
 }

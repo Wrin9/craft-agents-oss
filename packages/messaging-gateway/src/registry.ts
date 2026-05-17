@@ -12,9 +12,12 @@
  * gateways via initializeWorkspace() for every workspace that has messaging enabled.
  */
 
-import { existsSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
+import { addWorkspace, getWorkspaceByNameOrId } from '@craft-agent/shared/config'
+import { generateUniqueWorkspacePath, getDefaultWorkspacesDir } from '@craft-agent/shared/workspaces'
 import type { PushTarget } from '@craft-agent/shared/protocol'
 import type { CredentialManager } from '@craft-agent/shared/credentials'
 import type {
@@ -32,10 +35,11 @@ import { WhatsAppAdapter, type WhatsAppEvent } from './adapters/whatsapp/index'
 import { LarkAdapter, parseLarkCredentials, type LarkCredentials } from './adapters/lark/index'
 import { WeChatAdapter } from './adapters/wechat/index'
 import { TopicRegistry } from './topic-registry'
-import type { SessionEvent } from './renderer'
+import { Renderer, type SessionEvent } from './renderer'
 import type { EventSinkFn } from './event-fanout'
 import type {
   BindingAccessMode,
+  BindingConfig,
   ChannelBinding,
   MessagingConfig,
   MessagingLogger,
@@ -45,6 +49,7 @@ import type {
   PlatformOwner,
   PlatformType,
 } from './types'
+import { getDefaultBindingConfig, normalizeBindingConfig } from './types'
 
 const consoleLogger: MessagingLogger = {
   info: (message, meta) => console.log('[MessagingRegistry]', message, meta ?? ''),
@@ -98,6 +103,17 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
   private readonly workspaces = new Map<string, WorkspaceState>()
   private readonly pairing = new PairingCodeManager()
   private readonly log: MessagingLogger
+
+  // WeChat global state — cross-workspace direct session access
+  private readonly wechatUsers = new Map<string, {
+    activeSessionId: string | null
+    activeWorkspaceId: string | null
+  }>()
+  private wechatAdapter: WeChatAdapter | null = null
+  private wechatRenderer = new Renderer()
+
+  /** Dedicated workspace for external messaging platforms (WeChat, etc.) */
+  private externalWorkspaceId: string | null = null
 
   constructor(private readonly opts: MessagingGatewayRegistryOptions) {
     this.log = (opts.logger ?? consoleLogger).child({ component: 'registry' })
@@ -980,8 +996,341 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
       return
     }
 
+    // Global WeChat event routing takes priority — if a WeChat user has
+    // this session as active, the global renderer handles it directly.
+    // Skip the workspace gateway to avoid stale-binding "dropping" warnings.
+    const handledByWeChatGlobal = this.routeWeChatGlobalEvent(event)
+    if (handledByWeChatGlobal) return
+
     const state = this.workspaces.get(workspaceId)
     if (state) state.gateway.onSessionEvent(channel, target, ...args)
+  }
+
+  // -------------------------------------------------------------------------
+  // WeChat Global — cross-workspace direct session access
+  // -------------------------------------------------------------------------
+
+  /** Handle an inbound WeChat message at the registry level (cross-workspace). */
+  private async handleWeChatGlobalMessage(adapter: WeChatAdapter, msg: import('./types').IncomingMessage): Promise<void> {
+    const channelId = msg.channelId
+    const text = (msg.text ?? '').trim()
+
+    // Ensure user state exists
+    if (!this.wechatUsers.has(channelId)) {
+      this.wechatUsers.set(channelId, { activeSessionId: null, activeWorkspaceId: null })
+    }
+    const userState = this.wechatUsers.get(channelId)!
+
+    this.log.info('[wechat-global] inbound message', {
+      channelId: channelId.substring(0, 30),
+      textPreview: text.substring(0, 50),
+      activeSession: userState.activeSessionId?.substring(0, 8),
+    })
+
+    // --- Command parsing ---
+    if (text.startsWith('/')) {
+      await this.handleWeChatCommand(adapter, channelId, text, userState)
+      return
+    }
+
+    // --- Direct message to active session ---
+    if (!userState.activeSessionId) {
+      // No active session — auto-pick the most recent session across all workspaces
+      const sessions = this.opts.sessionManager.getSessions() // all workspaces
+      const active = sessions.find(s => s.isProcessing) ?? sessions.find(s => !s.isArchived)
+      if (active) {
+        userState.activeSessionId = active.id
+        userState.activeWorkspaceId = active.workspaceId
+        await adapter.sendText(channelId, `📡 Auto-connected to "${active.name || active.id.substring(0, 8)}"`)
+      } else {
+        // No sessions at all — create one in the External workspace
+        const externalWs = this.ensureExternalWorkspace()
+        const session = await this.opts.sessionManager.createSession(externalWs, {
+          name: 'WeChat',
+        })
+        userState.activeSessionId = session.id
+        userState.activeWorkspaceId = externalWs
+        await adapter.sendText(channelId, `📡 Created & connected to new session "${session.name}"`)
+      }
+    }
+
+    // Send message to the active session
+    try {
+      await this.opts.sessionManager.sendMessage(
+        userState.activeSessionId,
+        text,
+        undefined, // attachments
+        undefined, // storedAttachments
+        undefined, // options
+      )
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      this.log.error('[wechat-global] sendMessage failed', {
+        sessionId: userState.activeSessionId,
+        error: errorMsg,
+      })
+      await adapter.sendText(channelId, `Failed: ${errorMsg}`)
+    }
+  }
+
+  /** Route session events back to WeChat user if that session is their active one. */
+  /** @returns true if a WeChat user has this session active (event routed) */
+  private routeWeChatGlobalEvent(event: SessionEvent): boolean {
+    if (!this.wechatAdapter || !this.wechatAdapter.isConnected()) return false
+
+    for (const [channelId, userState] of this.wechatUsers) {
+      if (userState.activeSessionId !== event.sessionId) continue
+
+      // Create a virtual binding for the renderer
+      const virtualBinding: ChannelBinding = {
+        id: `wechat-global-${channelId}`,
+        workspaceId: userState.activeWorkspaceId ?? '',
+        sessionId: event.sessionId,
+        platform: 'wechat',
+        channelId,
+        enabled: true,
+        createdAt: Date.now(),
+        config: normalizeBindingConfig('wechat', { responseMode: 'final_only' }),
+      }
+
+      this.wechatRenderer.handle(event, virtualBinding, this.wechatAdapter).catch((err) => {
+        this.log.error('[wechat-global] renderer failed', {
+          sessionId: event.sessionId,
+          channelId: channelId.substring(0, 20),
+          error: err,
+        })
+      })
+      return true // event handled by global WeChat
+    }
+    return false
+  }
+
+  /** Handle WeChat-specific commands at the registry level. */
+  private async handleWeChatCommand(
+    adapter: WeChatAdapter,
+    channelId: string,
+    text: string,
+    userState: { activeSessionId: string | null; activeWorkspaceId: string | null },
+  ): Promise<void> {
+    const parts = text.split(/\s+/)
+    const cmd = (parts[0] ?? '').toLowerCase()
+    const arg = parts.slice(1).join(' ')
+
+    const reply = (t: string) => adapter.sendText(channelId, t)
+
+    switch (cmd) {
+      case '/sessions':
+      case '/list':
+      case '/ls': {
+        await this.wechatCmdListSessions(adapter, channelId)
+        break
+      }
+
+      case '/switch': {
+        if (!arg) {
+          await reply('Usage: /switch <number or session name>')
+          break
+        }
+        await this.wechatCmdSwitch(adapter, channelId, arg, userState)
+        break
+      }
+
+      // Quick number switch: /1, /2, /3, etc.
+      default: {
+        const numMatch = cmd.match(/^\/(\d+)$/)
+        if (numMatch) {
+          await this.wechatCmdSwitch(adapter, channelId, numMatch[1] ?? '', userState)
+        } else if (cmd === '/new') {
+          await this.wechatCmdNew(adapter, channelId, arg, userState)
+        } else if (cmd === '/workspaces' || cmd === '/ws') {
+          await this.wechatCmdWorkspaces(adapter, channelId, userState, arg)
+        } else if (cmd === '/status') {
+          await this.wechatCmdStatus(adapter, channelId, userState)
+        } else if (cmd === '/thinking') {
+          // Update renderer mode for this user's virtual binding
+          await reply('Thinking mode ON — you\'ll see live progress.')
+        } else if (cmd === '/quiet') {
+          await reply('Quiet mode ON — only final replies will be sent.')
+        } else if (cmd === '/help') {
+          await reply(
+            '📡 WeChat Global Commands:\n\n' +
+            '/sessions — list all sessions across workspaces\n' +
+            '/<number> — quick switch to session #\n' +
+            '/switch <name> — switch to session by name\n' +
+            '/new [name] — create a new session\n' +
+            '/workspaces — list workspaces\n' +
+            '/ws <name> — set default workspace for /new\n' +
+            '/status — show current session & workspace\n' +
+            '/thinking — show live progress\n' +
+            '/quiet — only final replies\n' +
+            '/help — show this message',
+          )
+        } else {
+          // Unknown command — treat as regular text and send to active session
+          if (userState.activeSessionId) {
+            try {
+              await this.opts.sessionManager.sendMessage(userState.activeSessionId, text)
+            } catch {
+              await reply('Failed to send message.')
+            }
+          } else {
+            await reply('No active session. Use /sessions to pick one, or /new to create one.')
+          }
+        }
+        break
+      }
+    }
+  }
+
+  private async wechatCmdListSessions(adapter: WeChatAdapter, channelId: string): Promise<void> {
+    const sessions = this.opts.sessionManager.getSessions() // all workspaces
+    const active = sessions.filter(s => !s.isArchived).slice(0, 20)
+
+    if (active.length === 0) {
+      await adapter.sendText(channelId, 'No sessions found. Use /new to create one.')
+      return
+    }
+
+    // Group by workspace
+    const byWorkspace = new Map<string, typeof active>()
+    for (const s of active) {
+      const list = byWorkspace.get(s.workspaceId) ?? []
+      list.push(s)
+      byWorkspace.set(s.workspaceId, list)
+    }
+
+    const userState = this.wechatUsers.get(channelId)
+    const activeId = userState?.activeSessionId
+
+    let lines: string[] = ['📋 All Sessions:']
+    let idx = 1
+    for (const [wsId, wsSessions] of byWorkspace) {
+      const wsState = this.workspaces.get(wsId)
+      // Try to get workspace name from sessions or use short ID
+      const wsName = wsId.substring(0, 8)
+      lines.push(`\n🗂 ${wsName}`)
+      for (const s of wsSessions) {
+        const isActive = s.id === activeId
+        const status = s.isProcessing ? '🔵' : '⬜'
+        const marker = isActive ? ' ◀️' : ''
+        lines.push(`  ${idx}. ${status} ${s.name || s.id.substring(0, 8)}${marker}`)
+        idx++
+      }
+    }
+    lines.push('\nUse /<number> to switch, or /switch <name>')
+
+    await adapter.sendText(channelId, lines.join('\n'))
+  }
+
+  private async wechatCmdSwitch(
+    adapter: WeChatAdapter,
+    channelId: string,
+    arg: string,
+    userState: { activeSessionId: string | null; activeWorkspaceId: string | null },
+  ): Promise<void> {
+    const sessions = this.opts.sessionManager.getSessions().filter(s => !s.isArchived)
+
+    // Try numeric index
+    const numIdx = parseInt(arg, 10)
+    if (!isNaN(numIdx) && numIdx >= 1 && numIdx <= sessions.length) {
+      const target = sessions[numIdx - 1]
+      if (target) {
+        userState.activeSessionId = target.id
+        userState.activeWorkspaceId = target.workspaceId
+        await adapter.sendText(
+          channelId,
+          `✅ Switched to "${target.name || target.id.substring(0, 8)}" [${target.workspaceId.substring(0, 8)}]`,
+        )
+      }
+      return
+    }
+
+    // Try name match (case-insensitive substring)
+    const match = sessions.find(s =>
+      s.name && s.name.toLowerCase().includes(arg.toLowerCase()),
+    )
+    if (match) {
+      userState.activeSessionId = match.id
+      userState.activeWorkspaceId = match.workspaceId
+      await adapter.sendText(
+        channelId,
+        `✅ Switched to "${match.name || match.id.substring(0, 8)}" [${match.workspaceId.substring(0, 8)}]`,
+      )
+      return
+    }
+
+    await adapter.sendText(channelId, `Session not found: "${arg}". Use /sessions to see available sessions.`)
+  }
+
+  private async wechatCmdNew(
+    adapter: WeChatAdapter,
+    channelId: string,
+    name: string | undefined,
+    userState: { activeSessionId: string | null; activeWorkspaceId: string | null },
+  ): Promise<void> {
+    const externalWs = this.ensureExternalWorkspace()
+
+    const session = await this.opts.sessionManager.createSession(externalWs, {
+      name: name || 'WeChat',
+    })
+    userState.activeSessionId = session.id
+    userState.activeWorkspaceId = externalWs
+    await adapter.sendText(
+      channelId,
+      `✅ Created & switched to "${session.name}" [${externalWs.substring(0, 8)}]`,
+    )
+  }
+
+  private async wechatCmdWorkspaces(
+    adapter: WeChatAdapter,
+    channelId: string,
+    userState: { activeSessionId: string | null; activeWorkspaceId: string | null },
+    arg?: string,
+  ): Promise<void> {
+    if (arg) {
+      // Switch default workspace
+      for (const wsId of this.workspaces.keys()) {
+        if (wsId.startsWith(arg) || wsId === arg) {
+          userState.activeWorkspaceId = wsId
+          await adapter.sendText(channelId, `✅ Default workspace set to ${wsId.substring(0, 8)}`)
+          return
+        }
+      }
+      await adapter.sendText(channelId, `Workspace not found: "${arg}"`)
+      return
+    }
+
+    // List workspaces
+    const lines: string[] = ['🗂 Workspaces:']
+    let idx = 1
+    for (const [wsId] of this.workspaces) {
+      const isDefault = wsId === userState.activeWorkspaceId
+      const marker = isDefault ? ' ◀️ default' : ''
+      lines.push(`  ${idx}. ${wsId.substring(0, 8)}${marker}`)
+      idx++
+    }
+    await adapter.sendText(channelId, lines.join('\n'))
+  }
+
+  private async wechatCmdStatus(
+    adapter: WeChatAdapter,
+    channelId: string,
+    userState: { activeSessionId: string | null; activeWorkspaceId: string | null },
+  ): Promise<void> {
+    if (!userState.activeSessionId) {
+      await adapter.sendText(channelId, 'No active session. Use /sessions or /new.')
+      return
+    }
+
+    const session = await this.opts.sessionManager.getSession(userState.activeSessionId)
+    const name = session?.name || userState.activeSessionId.substring(0, 8)
+    const ws = userState.activeWorkspaceId?.substring(0, 8) ?? 'unknown'
+    const processing = session?.isProcessing ? ' 🔵 running' : ''
+
+    await adapter.sendText(
+      channelId,
+      `📡 Active: "${name}"\nWorkspace: ${ws}${processing}`,
+    )
   }
 
   // -------------------------------------------------------------------------
@@ -1197,6 +1546,38 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
     await state.gateway.start()
   }
 
+  /**
+   * Ensure the dedicated External workspace exists.
+   * Called once when WeChat adapter first connects.
+   * This workspace holds all sessions created via external messaging platforms.
+   */
+  private ensureExternalWorkspace(): string {
+    if (this.externalWorkspaceId) return this.externalWorkspaceId
+
+    // Check if an existing workspace is already named "📡 External"
+    const allWorkspaces = this.opts.sessionManager.getWorkspaces()
+    const existing = allWorkspaces.find(
+      ws => ws.name === 'External' || ws.slug === 'external'
+    )
+    if (existing) {
+      this.externalWorkspaceId = existing.id
+      this.log.info('[external-workspace] found existing', { workspaceId: existing.id })
+      return existing.id
+    }
+
+    // Create a new workspace in the default workspaces directory
+    const baseDir = getDefaultWorkspacesDir()
+    const rootPath = generateUniqueWorkspacePath('external', baseDir)
+    const workspace = addWorkspace({ name: 'External', rootPath })
+    this.externalWorkspaceId = workspace.id
+
+    this.log.info('[external-workspace] created', {
+      workspaceId: workspace.id,
+      rootPath,
+    })
+    return workspace.id
+  }
+
   private async tryConnectWeChat(workspaceId: string, state: WorkspaceState): Promise<void> {
     const cred = await this.opts.credentialManager
       .get({ type: 'messaging_bearer', workspaceId, name: 'wechat' })
@@ -1212,27 +1593,37 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
       return
     }
 
-    await state.gateway.unregisterAdapter('wechat').catch((err) => {
-      this.log.warn('unregisterAdapter(wechat) failed (non-fatal)', {
-        event: 'wechat_unregister_failed',
-        workspaceId,
-        error: err,
-      })
-    })
+    await state.gateway.unregisterAdapter('wechat').catch(() => {})
 
     try {
-      const adapter = new WeChatAdapter()
-      await adapter.initialize({
-        token: cred.value,
-        logger: this.log.child({
-          component: 'wechat-adapter',
-          workspaceId,
-          platform: 'wechat',
-        }),
-      })
+      const adapter = this.wechatAdapter ?? new WeChatAdapter()
+
+      // First workspace to configure WeChat owns the global adapter
+      if (!this.wechatAdapter) {
+        await adapter.initialize({
+          token: cred.value,
+          logger: this.log.child({
+            component: 'wechat-adapter',
+            platform: 'wechat',
+          }),
+        })
+        this.wechatAdapter = adapter
+
+        // Wire global message handler — bypasses per-workspace router
+        adapter.onMessage(async (msg) => {
+          this.log.info('[wechat-global] onMessage fired', {
+            channelId: msg.channelId.substring(0, 30),
+            textPreview: msg.text.substring(0, 50),
+          })
+          await this.handleWeChatGlobalMessage(adapter, msg)
+        })
+        this.log.info('[wechat-global] global message handler installed')
+
+        // Ensure the dedicated External workspace exists
+        this.ensureExternalWorkspace()
+      }
 
       state.wechat = adapter
-      state.gateway.registerAdapter(adapter)
       this.setPlatformRuntime(workspaceId, state, 'wechat', {
         configured: true,
         connected: true,

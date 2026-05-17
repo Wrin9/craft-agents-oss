@@ -1040,16 +1040,10 @@ app.whenReady().then(async () => {
       mainLog.warn('Failed to set Sentry context tags:', err)
     }
 
-    // Initialize auto-update (check immediately on launch)
-    // Skip in dev mode to avoid replacing /Applications app and launching it instead
+    // Initialize auto-update
+    // Disabled for forked/self-built versions — no update server configured
     if (moduleSink) setAutoUpdateEventSink(moduleSink)
-    if (app.isPackaged) {
-      checkForUpdatesOnLaunch().catch(err => {
-        mainLog.error('[auto-update] Launch check failed:', err)
-      })
-    } else {
-      mainLog.info('[auto-update] Skipping auto-update in dev mode')
-    }
+    mainLog.info('[auto-update] Skipping auto-update (self-built version)')
 
     // Process pending deep link from cold start
     if (pendingDeepLink) {

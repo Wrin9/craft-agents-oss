@@ -248,8 +248,15 @@ export function WorkspaceSwitcher({
           sideOffset={variant === 'topbar' ? 6 : 4}
           minWidth={variant === 'topbar' ? 'min-w-64' : undefined}
         >
-          {workspaces.map((workspace) => {
-            const disconnected = isRemoteDisconnected(workspace.id)
+          {(() => {
+            // Sort: External workspace first, then rest in original order
+            const sorted = [...workspaces].sort((a, b) => {
+              const aExt = a.slug === 'external' ? 0 : 1
+              const bExt = b.slug === 'external' ? 0 : 1
+              return aExt - bExt
+            })
+            return sorted.map((workspace) => {
+              const disconnected = isRemoteDisconnected(workspace.id)
             return (
               <StyledDropdownMenuItem
                 key={workspace.id}
@@ -320,7 +327,8 @@ export function WorkspaceSwitcher({
                 </div>
               </StyledDropdownMenuItem>
             )
-          })}
+            })
+          })()}
 
           {/* Separator and New Workspace option */}
           <StyledDropdownMenuSeparator />
