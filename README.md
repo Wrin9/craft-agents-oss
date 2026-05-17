@@ -377,14 +377,71 @@ xattr -cr /Applications/Cody\ Agent.app
 
 ---
 
-## Acknowledgments
+## Acknowledgments & References
 
-- [Craft Agents](https://github.com/craft-ai-agents/craft-agents-oss) — The upstream project by [Craft Docs](https://craft.do)
-- [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) — Anthropic's agent SDK
-- [Electron](https://www.electronjs.org/) — Cross-platform desktop framework
+This project builds upon and references the following open-source projects and services:
+
+### Core — Forked From
+
+| Project | Usage | License |
+|---------|-------|--------|
+| [**Craft Agents**](https://github.com/craft-ai-agents/craft-agents-oss) by [Craft Docs](https://craft.do) | **Upstream project** — the entire app architecture, UI, session management, source/skill system, and all original features | Apache 2.0 |
+
+### AI SDKs
+
+| Project | Usage | License |
+|---------|-------|--------|
+| [**Claude Agent SDK**](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) by [Anthropic](https://anthropic.com) | Core AI agent runtime — tool execution, conversation loop, streaming | Anthropic Commercial Terms |
+| [**Pi SDK**](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) | Alternative AI runtime for Pi models | — |
+
+### WeChat Integration (Added in This Fork)
+
+| Project | Usage | Link |
+|---------|-------|------|
+| [**iLink Bot API**](https://ilinkai.weixin.qq.com) by Tencent | WeChat personal bot protocol — QR login, message polling, sending | Official API docs |
+| Telegram adapter pattern | WeChat adapter architecture references the existing [Telegram adapter](https://github.com/craft-ai-agents/craft-agents-oss/tree/main/packages/messaging-gateway/src/adapters/telegram) (grammY-based) from upstream | [grammY](https://grammy.dev/) |
+
+### Desktop & UI
+
+| Project | Usage | License |
+|---------|-------|--------|
+| [**Electron**](https://www.electronjs.org/) | Cross-platform desktop runtime | MIT |
+| [**React**](https://react.dev/) | UI framework | MIT |
+| [**shadcn/ui**](https://ui.shadcn.com/) + [Radix](https://www.radix-ui.com/) | UI component library | MIT |
+| [**Tailwind CSS v4**](https://tailwindcss.com/) | Styling | MIT |
+| [**Vite**](https://vitejs.dev/) | Renderer build tool | MIT |
+| [**esbuild**](https://esbuild.github.io/) | Main process bundler | MIT |
+| [**electron-builder**](https://www.electron.build/) | App packaging & distribution | MIT |
+| [**Jotai**](https://jotai.org/) | React state management | MIT |
+
+### Messaging Adapters (from Upstream)
+
+| Platform | Library | License |
+|----------|---------|--------|
+| Telegram | [grammY](https://grammy.dev/) | MIT |
+| Lark / Feishu | HTTP webhook API | — |
+| WhatsApp | Dedicated worker | — |
+
+### Other Dependencies
+
+| Project | Usage | License |
+|---------|-------|--------|
+| [**Bun**](https://bun.sh/) | JavaScript runtime & package manager | MIT |
+| [**better-sqlite3**](https://github.com/WiseLibs/better-sqlite3) | Local database | MIT |
+| [**@vscode/ripgrep**](https://github.com/microsoft/vscode-ripgrep) | Fast file search | MIT |
+| [**i18next**](https://www.i18next.com/) | Internationalization | MIT |
+| [**react-i18next**](https://react.i18next.com/) | React bindings for i18n | MIT |
+| [**TipTap**](https://tiptap.dev/) | Rich text editor | MIT |
+| [**Sentry**](https://sentry.io/) | Error tracking | MIT (SDK) |
+| [**Lucide**](https://lucide.dev/) | Icon library | ISC |
+| [**sonner**](https://sonner.emilkowal.dev/) | Toast notifications | MIT |
+
+---
 
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 This project uses the Claude Agent SDK, subject to [Anthropic's Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms).
+
+"Craft" and "Craft Agents" are trademarks of Craft Docs Ltd. See [TRADEMARK.md](TRADEMARK.md) for usage guidelines.
